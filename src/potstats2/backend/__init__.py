@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import Flask, request, Response
 from sqlalchemy import and_, func, desc
 
-from ..db import get_session, Post, User
+from ..db import get_session, Post, User, Thread
 
 app = Flask(__name__)
 no_default = object()
@@ -60,6 +60,30 @@ def poster_stats():
     except KeyError:
         raise APIError('Invalid order_by: %s' % order_by)
 
+    def apply_year_filter(query):
+        if year:
+            # [lower, upper)
+            lower_timestamp_bound = datetime(year, 1, 1, 0, 0, 0)
+            upper_timestamp_bound = lower_timestamp_bound.replace(year=year + 1)
+            query = query.filter(lower_timestamp_bound <= Post.timestamp).filter(Post.timestamp < upper_timestamp_bound)
+        return query
+
+    threads_opened = (
+        session
+        .query(
+            User.uid,
+            func.count(Thread.tid).label('threads_created'),
+        )
+        .filter(Thread.first_post == Post.pid)
+        .filter(Post.poster_uid == User.uid)
+    )
+
+    threads_opened = (
+        apply_year_filter(threads_opened)
+        .group_by(User.uid)
+        .subquery('to')
+    )
+
     query = (
         session
         .query(
@@ -67,15 +91,13 @@ def poster_stats():
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
             func.avg(func.length(Post.content)).label('avg_post_length'),
+            func.coalesce(threads_opened.c.threads_created, 0).label('threads_created'),
         )
         .filter(Post.poster_uid == User.uid)
+        .outerjoin(threads_opened, threads_opened.c.uid == User.uid)
     )
 
-    if year:
-        # [lower, upper)
-        lower_timestamp_bound = datetime(year, 1, 1, 0, 0, 0)
-        upper_timestamp_bound = lower_timestamp_bound.replace(year=year + 1)
-        query = query.filter(lower_timestamp_bound <= Post.timestamp).filter(Post.timestamp < upper_timestamp_bound)
+    query = apply_year_filter(query)
 
     query = (
         query
@@ -91,6 +113,7 @@ def poster_stats():
             'post_count': r.post_count,
             'edit_count': r.edit_count,
             'avg_post_length': r.avg_post_length,
+            'threads_created': r.threads_created
         })
 
     return json_response({'rows': rows})

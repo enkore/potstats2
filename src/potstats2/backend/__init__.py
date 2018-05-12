@@ -46,6 +46,15 @@ def handle_api_error(error: APIError):
 
 @app.route('/api/poster-stats')
 def poster_stats():
+    """
+    Basic posting statistics on users
+
+    Query parameters:
+    - year: optional int, restrict to certain year
+    - limit: optional int, default 1000, restrict number of rows
+    - order_by: asc/desc, default desc, set sort direction
+    - order_by_column: default post_count, one of ('post_count', 'edit_count', 'avg_post_length', 'threads_created')
+    """
     session = get_session()
 
     year = request_arg('year', int, default=None)
@@ -69,7 +78,11 @@ def poster_stats():
             # [lower, upper)
             lower_timestamp_bound = datetime(year, 1, 1, 0, 0, 0)
             upper_timestamp_bound = lower_timestamp_bound.replace(year=year + 1)
-            query = query.filter(lower_timestamp_bound <= Post.timestamp).filter(Post.timestamp < upper_timestamp_bound)
+            query = (
+                query
+                .filter(lower_timestamp_bound <= Post.timestamp)
+                .filter(Post.timestamp < upper_timestamp_bound)
+            )
         return query
 
     threads_opened = (
@@ -98,6 +111,10 @@ def poster_stats():
             func.coalesce(threads_opened.c.threads_created, 0).label('threads_created'),
         )
         .filter(Post.poster_uid == User.uid)
+        # The OUTER JOIN will create rows with NULL to.c.threads_created if the user created no threads
+        # (because there is no row matching the WHERE clause the aggregation has no result so the outer join
+        #  inserts NULLs into the resulting columns).
+        # These are killed off by the COALESCE above.
         .outerjoin(threads_opened, threads_opened.c.uid == User.uid)
     )
 

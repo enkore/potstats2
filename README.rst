@@ -37,3 +37,21 @@ Backend
 -------
 
 You're not an alcoholic if you flask it™
+
+Methinks: Anyone can serve a bit of JS for the frontend, not the problem.
+Frontend wants to get at the data, so we probably need something like
+/api/stats?year=2005&order_by=post_frequency&limit=1000 -> ::
+
+  {'rows': [
+    {'user': {'name': ..., 'id': ...},
+     'posts': 123928392103,
+     'threads': 1231,
+     'posts_per_day': 213123,
+     ...},
+    ...
+  ]}
+
+Rinse and repeat for the other statistics. Once we figured that out we can
+add additional indexes or views to the DB as needed for performance.
+We could even use materialized views for aggregate statistics
+that we simply refresh after the crawler ran.

@@ -1,6 +1,12 @@
 postats2
 ========
 
+A classic three-zoo enterprise architecture:
+
+- Backoffice: The worldeater populates the database via the XML API
+- Backend: A JSON-API-to-RDBMS connector
+- Frontend: Need that one too :D
+
 Backoffice
 ----------
 

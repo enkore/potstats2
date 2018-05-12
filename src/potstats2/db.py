@@ -113,6 +113,8 @@ class Thread(Base):
     # Our last processed post, that is.
     last_post = Column(ForeignKey('posts.pid'))
 
+    first_post= Column(ForeignKey('posts.pid'))
+
 
 class Post(Base):
     __tablename__ = 'posts'

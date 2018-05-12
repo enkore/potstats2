@@ -211,6 +211,7 @@ def main():
             num_merged_posts = merge_pages(api, session, dbthread, start_page)
             if num_merged_posts:  # ProgressBar.update doesn't like zero.
                 bar.update(num_merged_posts)
+            dbthread.first_post = session.query(Post.pid).filter(Post.tid == dbthread.tid).order_by(Post.pid).first()[0]
             session.commit()
 
     ws = WorldeaterState.get(session)

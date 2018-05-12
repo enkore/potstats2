@@ -48,7 +48,7 @@ def handle_api_error(error: APIError):
 def poster_stats():
     session = get_session()
 
-    year = request_arg('year', int)
+    year = request_arg('year', int, default=None)
     limit = request_arg('limit', int, default=1000)
     order_by = request_arg('order_by', str, default='desc')
     try:
@@ -59,22 +59,31 @@ def poster_stats():
     except KeyError:
         raise APIError('Invalid order_by: %s' % order_by)
 
-    # [lower, upper)
-    lower_timestamp_bound = datetime(year, 1, 1, 0, 0, 0)
-    upper_timestamp_bound = lower_timestamp_bound.replace(year=year + 1)
-
-    rows = []
-    for user, post_count in (
-        session.query(User, func.count(Post.pid))
+    query = (
+        session
+        .query(User, func.count(Post.pid), func.avg(func.length(Post.content)))
         .filter(Post.poster_uid == User.uid)
-        .filter(and_(lower_timestamp_bound <= Post.timestamp, Post.timestamp < upper_timestamp_bound))
+    )
+
+    if year:
+        # [lower, upper)
+        lower_timestamp_bound = datetime(year, 1, 1, 0, 0, 0)
+        upper_timestamp_bound = lower_timestamp_bound.replace(year=year + 1)
+        query = query.filter(lower_timestamp_bound <= Post.timestamp).filter(Post.timestamp < upper_timestamp_bound)
+
+    query = (
+        query
         .group_by(User)
         .order_by(order_by_column)
         .limit(limit)
-    ).all():
+    )
+
+    rows = []
+    for user, post_count, avg_post_length in query.all():
         rows.append({
             'user': {'name': user.name, 'uid': user.uid},
-            'post_count': post_count
+            'post_count': post_count,
+            'avg_post_length': avg_post_length,
         })
 
     return json_response({'rows': rows})

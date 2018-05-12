@@ -56,6 +56,12 @@ add additional indexes or views to the DB as needed for performance.
 We could even use materialized views for aggregate statistics
 that we simply refresh after the crawler ran.
 
+---
+
+Run ``potstats2-backend-dev`` for the usual Flask dev server.
+
+Try http://127.0.0.1:5000/api/poster-stats?year=2003
+
 About SQLAlchemy
 ----------------
 

@@ -54,7 +54,7 @@ def sync_categories(api, session):
     return categories
 
 
-def sync_boards(categories, session):
+def sync_boards(session, categories):
     num_boards = len(categories.findall('.//boards/board'))
     with ElapsedProgressBar(length=num_boards, label='Syncing boards') as bar:
         for board in categories.findall('./category/boards/board'):
@@ -69,13 +69,21 @@ def sync_boards(categories, session):
 
 
 def datetime_from_xml(date_tag):
+    """Convert XML `<date timestamp=...>ISO-8601 date</date>` structure to datetime object."""
     return datetime.fromtimestamp(int(date_tag.attrib['timestamp']), timezone.utc)
 
 
 def merge_posts(session, dbthread, posts):
+    """
+    Merge *posts* in thread *dbthread* into the database. Return number of posts processed.
+
+    Update dbthread.last_post as required.
+    """
     i, post = -1, None
     for i, post in enumerate(posts):
         pid = int(post.attrib['id'])
+        # We roundtrip to the DB for each post here, but that's most likely not a problem
+        # because we get at most 30 posts per 0.2 s (API rate limiting and network speed).
         dbpost = session.query(Post).get(pid) or Post(pid=pid, tid=dbthread.tid)
         dbpost.poster_uid = User.from_xml(session, post.find('./user')).uid
         dbpost.timestamp = datetime_from_xml(post.find('./date'))
@@ -88,12 +96,37 @@ def merge_posts(session, dbthread, posts):
         dbpost.content = post.find('./message/content').text
         session.add(dbpost)
     if post:
-        dbthread.last_post = pid
+        dbthread.last_post = max(dbthread.last_post or 0, pid)
     return i + 1
 
 
 def merge_pages(api, session, dbthread, start_page=None):
+    """
+    Merge all posts in thread *dbthread* starting from and including *start_page*.
+    Return number of posts processed.
+    """
     return merge_posts(session, dbthread, api.iter_thread(dbthread.tid, start_page))
+
+
+def thread_from_xml(session, thread):
+    """
+    Create Thread object from board-level <thread> tag.
+
+    Precondition: Board object must exist to satisfy foreign key constraint on Thread.bid.
+    """
+    tid = int(thread.attrib['id'])
+    dbthread = session.query(Thread).get(tid) or Thread(tid=tid)
+    dbthread.bid = int(thread.find('./in-board').attrib['id'])
+    dbthread.title = thread.find('./title').text
+    dbthread.subtitle = thread.find('./subtitle').text
+    dbthread.is_closed = i2b(thread.find('./flags/is-closed'))
+    dbthread.is_sticky = i2b(thread.find('./flags/is-sticky'))
+    dbthread.is_important = i2b(thread.find('./flags/is-important'))
+    dbthread.is_announcement = i2b(thread.find('./flags/is-announcement'))
+    dbthread.is_global = i2b(thread.find('./flags/is-global'))
+    dbthread.hit_count = int(thread.find('./number-of-hits').attrib['value'])
+    dbthread.est_number_of_replies = int(thread.find('./number-of-replies').attrib['value'])
+    return dbthread
 
 
 def main():
@@ -104,9 +137,9 @@ def main():
     session = get_session()
 
     categories = sync_categories(api, session)
-    sync_boards(categories, session)
+    sync_boards(session, categories)
 
-    # I'd be cool to just have the PID in the minified XML:post, but well.
+    # I'd be cool to just have the PID in the minified XML:post, but oh well.
     # _, latest_post_thread = max((int(post.find('date').attrib['timestamp']), post.find('in-thread'))
     #                            for post in categories.findall('.//post'))
     # print('Newest post in TID %s [%s]' % (latest_post_thread.attrib['id'], latest_post_thread.text))
@@ -126,18 +159,7 @@ def main():
     with ElapsedProgressBar(length=int(board.find('./number-of-threads').attrib['value']),
                             show_pos=True, label='Syncing threads') as bar:
         for thread in api.iter_board(bid, oldest_tid=newest_complete_tid):
-            tid = int(thread.attrib['id'])
-            dbthread = session.query(Thread).get(tid) or Thread(tid=tid)
-            dbthread.bid = bid
-            dbthread.title = thread.find('./title').text
-            dbthread.subtitle = thread.find('./subtitle').text
-            dbthread.is_closed = i2b(thread.find('./flags/is-closed'))
-            dbthread.is_sticky = i2b(thread.find('./flags/is-sticky'))
-            dbthread.is_important = i2b(thread.find('./flags/is-important'))
-            dbthread.is_announcement = i2b(thread.find('./flags/is-announcement'))
-            dbthread.is_global = i2b(thread.find('./flags/is-global'))
-            dbthread.hit_count = int(thread.find('./number-of-hits').attrib['value'])
-            dbthread.est_number_of_replies = int(thread.find('./number-of-replies').attrib['value'])
+            dbthread = thread_from_xml(session, thread)
             session.add(dbthread)
             bar.update(1)
         session.commit()

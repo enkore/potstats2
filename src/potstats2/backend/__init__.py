@@ -51,6 +51,7 @@ def poster_stats():
     year = request_arg('year', int, default=None)
     limit = request_arg('limit', int, default=1000)
     order_by = request_arg('order_by', str, default='desc')
+
     try:
         order_by_column = {
             'asc': func.count(Post.pid),
@@ -61,7 +62,7 @@ def poster_stats():
 
     query = (
         session
-        .query(User, func.count(Post.pid), func.avg(func.length(Post.content)))
+        .query(User, func.count(Post.pid), func.sum(Post.edit_count), func.avg(func.length(Post.content)))
         .filter(Post.poster_uid == User.uid)
     )
 
@@ -79,10 +80,11 @@ def poster_stats():
     )
 
     rows = []
-    for user, post_count, avg_post_length in query.all():
+    for user, post_count, edit_count, avg_post_length in query.all():
         rows.append({
             'user': {'name': user.name, 'uid': user.uid},
             'post_count': post_count,
+            'edit_count': edit_count,
             'avg_post_length': avg_post_length,
         })
 

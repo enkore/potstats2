@@ -29,7 +29,7 @@ Create DB schema (probably use alembic later)::
 
     potstats2-db create_schema
 
-Run crawler::
+Run crawler (currently runs against some random subforum no one ever cared about, so this should take all but a minute)::
 
     potstats2-worldeater
 

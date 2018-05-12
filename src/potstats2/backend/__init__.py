@@ -62,7 +62,12 @@ def poster_stats():
 
     query = (
         session
-        .query(User, func.count(Post.pid), func.sum(Post.edit_count), func.avg(func.length(Post.content)))
+        .query(
+            User,
+            func.count(Post.pid).label('post_count'),
+            func.sum(Post.edit_count).label('edit_count'),
+            func.avg(func.length(Post.content)).label('avg_post_length'),
+        )
         .filter(Post.poster_uid == User.uid)
     )
 

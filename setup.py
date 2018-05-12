@@ -12,6 +12,7 @@ setup(
         'click',
         'requests',
         'sqlalchemy',
+        'Flask',
     ],
 
     description='potstats2',
@@ -36,6 +37,7 @@ setup(
         'console_scripts': [
             'potstats2-worldeater = potstats2.worldeater.main:main',
             'potstats2-db = potstats2.db:main',
+            'potstats2-backend-dev = potstats2.backend:main',
         ],
     },
 )

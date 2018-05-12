@@ -50,15 +50,19 @@ def poster_stats():
 
     year = request_arg('year', int, default=None)
     limit = request_arg('limit', int, default=1000)
-    order_by = request_arg('order_by', str, default='desc')
+    order_by_order = request_arg('order_by', str, default='desc')
+    order_by_column = request_arg('order_by_column', str, default='post_count')
+
+    if order_by_column not in ('post_count', 'edit_count', 'avg_post_length', 'threads_created'):
+        raise APIError('Invalid order_by_column: %s' % order_by_column)
 
     try:
-        order_by_column = {
-            'asc': func.count(Post.pid),
-            'desc': desc(func.count(Post.pid)),
-        }[order_by]
+        order_by = {
+            'asc': order_by_column,
+            'desc': desc(order_by_column),
+        }[order_by_order]
     except KeyError:
-        raise APIError('Invalid order_by: %s' % order_by)
+        raise APIError('Invalid order_by: %s' % order_by_order)
 
     def apply_year_filter(query):
         if year:
@@ -102,7 +106,7 @@ def poster_stats():
     query = (
         query
         .group_by(User)
-        .order_by(order_by_column)
+        .order_by(order_by)
         .limit(limit)
     )
 

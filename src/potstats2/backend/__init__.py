@@ -14,7 +14,7 @@ def json_response(data, status_code=200):
 
 
 @app.route('/api/poster-stats')
-def hello():
+def poster_stats():
     session = get_session()
 
     try:

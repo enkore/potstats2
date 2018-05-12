@@ -73,7 +73,7 @@ def datetime_from_xml(date_tag):
 
 
 def merge_posts(session, dbthread, posts):
-    i = 0
+    i, post = -1, None
     for i, post in enumerate(posts):
         pid = int(post.attrib['id'])
         dbpost = session.query(Post).get(pid) or Post(pid=pid, tid=dbthread.tid)
@@ -87,6 +87,8 @@ def merge_posts(session, dbthread, posts):
         dbpost.title = post.find('./message/title').text
         dbpost.content = post.find('./message/content').text
         session.add(dbpost)
+    if post:
+        dbthread.last_post = pid
     return i + 1
 
 
@@ -144,21 +146,39 @@ def main():
     threads_needing_update = {}  # TID --> (start_page, number_of_posts_estimated)
 
     with ElapsedProgressBar(session.query(Thread).filter_by(bid=bid).all(),
-                                     show_pos=True, label='Finding updated posts') as bar:
+                                     show_pos=True, label='Finding updated threads') as bar:
         for dbthread in bar:
             if dbthread.last_post:
                 thread = api.thread(dbthread.tid, pid=dbthread.last_post)
                 # Might advance dbthread.last_post to the last post on this page
                 posts = thread.findall('./posts/post')
-                merge_posts(api, session, dbthread, posts)
+                merge_posts(session, dbthread, posts)
                 pids = [int(post.attrib['id']) for post in posts]
+                last_on_page = pids[-1] == dbthread.last_post
+                last_page = int(thread.find('./number-of-pages').attrib['value']) == int(thread.find('./posts').attrib['page'])
+
+                if last_on_page and (last_page or len(posts) < 30):
+                    # Up to date on this thread if the last post we have is the last post on its page
+                    # and we are on the last page. This method seems to be accurate, unlike
+                    # XML:number-of-replies, which is not generally correct. (IIRC there are multiple corner cases
+                    # involving hidden and deleted posts; some threads have XML:nor=500, but the last page
+                    # has offset=500 and count=2, for example).
+                    #
+                    # Note that XML:number-of-pages is computed in bB based on XML:number-of-replies,
+                    # so if a lot of replies are missing it will be wrong as well. We catch of most of these
+                    # (~97 % in some theoretical sense) with the extra len(posts)<30 check, which will trigger
+                    # if we are already on the last *real* page which is not full.
+                    # If the stars align just right we'll always think a thread has some new posts and we will
+                    # never be able to tell it doesn't.
+                    continue
+
                 index_in_page = pids.index(dbthread.last_post)
                 index_in_thread = int(thread.find('./posts').attrib['offset']) + index_in_page
                 num_replies = int(thread.find('./number-of-replies').attrib['value'])
-                if index_in_thread + 1 == num_replies:
-                    continue
+                # Due to XML:number-of-replies inaccuracy this might become negative
+                estimated_number_of_posts = max(0, num_replies - index_in_thread)
                 threads_needing_update[dbthread.tid] = (int(thread.find('./posts').attrib['page']) + 1,
-                                                        num_replies - index_in_thread)
+                                                        estimated_number_of_posts)
             else:
                 threads_needing_update[dbthread.tid] = (0,
                                                         dbthread.est_number_of_replies)
@@ -168,7 +188,8 @@ def main():
         for tid, (start_page, estimated_number_of_posts) in threads_needing_update.items():
             dbthread = session.query(Thread).get(tid)
             num_merged_posts = merge_pages(api, session, dbthread, start_page)
-            bar.update(num_merged_posts)
+            if num_merged_posts:
+                bar.update(num_merged_posts)
             session.commit()
 
     ws = WorldeaterState.get(session)

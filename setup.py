@@ -8,7 +8,11 @@ setup(
 
     use_scm_version=True,
     setup_requires=['setuptools_scm'],
-    install_requires=['click', 'requests', 'sqlalchemy'],
+    install_requires=[
+        'click',
+        'requests',
+        'sqlalchemy',
+    ],
 
     description='potstats2',
     long_description=description,

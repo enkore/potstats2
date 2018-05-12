@@ -1,7 +1,5 @@
-import functools
 from time import perf_counter
 from datetime import datetime, timezone
-from xml.etree import ElementTree as ET
 
 import click
 from click._termui_impl import ProgressBar
@@ -129,6 +127,7 @@ def thread_from_xml(session, thread):
     return dbthread
 
 
+@click.command()
 def main():
     setup_debugger()
     print('nomnomnom')
@@ -210,7 +209,7 @@ def main():
         for tid, (start_page, estimated_number_of_posts) in threads_needing_update.items():
             dbthread = session.query(Thread).get(tid)
             num_merged_posts = merge_pages(api, session, dbthread, start_page)
-            if num_merged_posts:
+            if num_merged_posts:  # ProgressBar.update doesn't like zero.
                 bar.update(num_merged_posts)
             session.commit()
 

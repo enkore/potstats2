@@ -55,3 +55,16 @@ Rinse and repeat for the other statistics. Once we figured that out we can
 add additional indexes or views to the DB as needed for performance.
 We could even use materialized views for aggregate statistics
 that we simply refresh after the crawler ran.
+
+About SQLAlchemy
+----------------
+
+The ORM is fairly similar to Django (well, it's a Python ORM based on the ActiveRecord pattern...),
+but with less magic and no global state. E.g. instead of ``User.objects.get(...)`` (where does the
+database connection even come from?) you would write ``session.query(User).get(...)`` (ahh,
+a database session!).
+
+``potstats2.db.get_session()`` gives you an ORM session. If needed (unlikely), the engine object
+can be accessed through ``session.bind`` or ``potstats2.db.get_engine()``.
+
+- https://docs.sqlalchemy.org/en/latest/orm/tutorial.html#querying

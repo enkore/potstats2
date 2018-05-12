@@ -85,12 +85,12 @@ def poster_stats():
     )
 
     rows = []
-    for user, post_count, edit_count, avg_post_length in query.all():
+    for r in query.all():
         rows.append({
-            'user': {'name': user.name, 'uid': user.uid},
-            'post_count': post_count,
-            'edit_count': edit_count,
-            'avg_post_length': avg_post_length,
+            'user': {'name': r.User.name, 'uid': r.User.uid},
+            'post_count': r.post_count,
+            'edit_count': r.edit_count,
+            'avg_post_length': r.avg_post_length,
         })
 
     return json_response({'rows': rows})

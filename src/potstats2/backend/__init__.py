@@ -44,6 +44,21 @@ def handle_api_error(error: APIError):
     return error.get_response()
 
 
+def apply_year_filter(query, year=no_default):
+    if year is no_default:
+        year = request_arg('year', int, default=None)
+    if year:
+        # [lower, upper)
+        lower_timestamp_bound = datetime(year, 1, 1, 0, 0, 0)
+        upper_timestamp_bound = lower_timestamp_bound.replace(year=year + 1)
+        query = (
+            query
+            .filter(lower_timestamp_bound <= Post.timestamp)
+            .filter(Post.timestamp < upper_timestamp_bound)
+        )
+    return query
+
+
 @app.route('/api/poster-stats')
 def poster_stats():
     """
@@ -57,7 +72,6 @@ def poster_stats():
     """
     session = get_session()
 
-    year = request_arg('year', int, default=None)
     limit = request_arg('limit', int, default=1000)
     order_by_order = request_arg('order_by', str, default='desc')
     order_by_column = request_arg('order_by_column', str, default='post_count')
@@ -72,18 +86,6 @@ def poster_stats():
         }[order_by_order]
     except KeyError:
         raise APIError('Invalid order_by: %s' % order_by_order)
-
-    def apply_year_filter(query):
-        if year:
-            # [lower, upper)
-            lower_timestamp_bound = datetime(year, 1, 1, 0, 0, 0)
-            upper_timestamp_bound = lower_timestamp_bound.replace(year=year + 1)
-            query = (
-                query
-                .filter(lower_timestamp_bound <= Post.timestamp)
-                .filter(Post.timestamp < upper_timestamp_bound)
-            )
-        return query
 
     threads_opened = (
         session

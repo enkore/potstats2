@@ -146,7 +146,7 @@ def poster_stats():
 def weekday_stats():
     session = get_session()
     rows = []
-    query = apply_year_filter(
+    post_query = apply_year_filter(
         session
         .query(
             func.count(Post.pid).label('post_count'),
@@ -154,10 +154,16 @@ def weekday_stats():
             func.avg(func.length(Post.content)).label('avg_post_length'),
         )
     )
+    threads_query = apply_year_filter(
+        session
+        .query(func.count(Thread.tid).label('threads_created'))
+        .filter(Thread.first_post == Post.pid)
+    )
 
     for weekday in range(7):  # You could use a cartesian join against VALUES(0, ..., 6), but SQLite doesn't like that
-        q = query.filter(func.strftime('%w', Post.timestamp) == str(weekday))
-        rows.append(q.one()._asdict())
+        row = post_query.filter(func.strftime('%w', Post.timestamp) == str(weekday)).one()._asdict()
+        row.update(threads_query.filter(func.strftime('%w', Post.timestamp) == str(weekday)).one()._asdict())
+        rows.append(row)
 
     return json_response({'rows': rows})
 

@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from itertools import zip_longest
 
 from flask import Flask, request, Response
 from sqlalchemy import and_, func, desc
@@ -142,36 +143,53 @@ def poster_stats():
     return json_response({'rows': rows})
 
 
-@app.route('/api/weekday-stats')
-def weekday_stats():
-    session = get_session()
-    rows = []
-    post_query = apply_year_filter(
-        session
-        .query(
-            func.count(Post.pid).label('post_count'),
-            func.sum(Post.edit_count).label('edit_count'),
-            func.avg(func.length(Post.content)).label('avg_post_length'),
-            func.strftime('%w', Post.timestamp).label('weekday')
+def time_segregated_stats(time_column, time_column_name):
+    def view():
+        session = get_session()
+        rows = []
+        post_query = apply_year_filter(
+            session
+            .query(
+                func.count(Post.pid).label('post_count'),
+                func.sum(Post.edit_count).label('edit_count'),
+                func.avg(func.length(Post.content)).label('avg_post_length'),
+                time_column.label(time_column_name)
+            )
+            .group_by(time_column_name)
         )
-        .group_by('weekday')
-    )
-    threads_query = apply_year_filter(
-        session
-        .query(
-            func.count(Thread.tid).label('threads_created'),
-            func.strftime('%w', Post.timestamp).label('weekday')
+        threads_query = apply_year_filter(
+            session
+            .query(
+                func.count(Thread.tid).label('threads_created'),
+                time_column.label(time_column_name)
+            )
+            .filter(Thread.first_post == Post.pid)
+            .group_by(time_column_name)
         )
-        .filter(Thread.first_post == Post.pid)
-        .group_by('weekday')
-    )
 
-    for p, t in zip(post_query.all(), threads_query.all()):
-        row = p._asdict()
-        row.update(t._asdict())
-        rows.append(row)
+        for p, t in zip_longest(post_query.all(), threads_query.all()):
+            row = {}
+            if p:
+                row.update(p._asdict())
+            else:
+                row.update({'post_count': 0, 'edit_count': 0, 'avg_post_length': 0})
+            if t:
+                row.update(t._asdict())
+            else:
+                row.update({'threads_created': 0})
+            rows.append(row)
 
-    return json_response({'rows': rows})
+        return json_response({'rows': rows})
+    view.__name__ = 'view_' + time_column_name
+    return view
+
+app.route('/api/weekday-stats')(
+    time_segregated_stats(func.strftime('%w', Post.timestamp), 'weekday')
+)
+
+app.route('/api/hourly-stats')(
+    time_segregated_stats(func.strftime('%W:%w:%H', Post.timestamp), 'weekday_hour')
+)
 
 
 def main():

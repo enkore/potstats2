@@ -39,6 +39,11 @@ Run crawler (currently runs against some random subforum no one ever cared about
 
     potstats2-worldeater
 
+Error handling
+++++++++++++++
+
+Instead of complex error handling (beyond e.g. retries within the API abstraction) we can use checkpointing, since all data is stored in a SQL database. The design itself already implies checkpoints, some extra commits are already in place. Phases which will take a lot of time in practice (thread, update and post discovery) probably should get some time-based checkpoints.
+
 Backend
 -------
 

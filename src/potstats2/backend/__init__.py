@@ -191,6 +191,10 @@ app.route('/api/hourly-stats')(
     time_segregated_stats(func.strftime('%W:%w:%H', Post.timestamp), 'weekday_hour')
 )
 
+app.route('/api/year-over-year-stats')(
+time_segregated_stats(func.strftime('%Y', Post.timestamp), 'year')
+)
+
 
 def main():
     print('Only for development!')

@@ -140,7 +140,7 @@ class Post(Base):
 class WorldeaterState(Base):
     __tablename__ = 'worldeater_state'
     __table_args__ = (
-        CheckConstraint('singleton == 0', name='ensure_single_state'),
+        CheckConstraint('singleton = 0', name='ensure_single_state'),
     )
 
     singleton = Column(Integer, primary_key=True)

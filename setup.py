@@ -13,6 +13,7 @@ setup(
         'requests',
         'sqlalchemy',
         'Flask',
+        'psycopg2',
     ],
 
     description='potstats2',

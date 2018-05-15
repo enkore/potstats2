@@ -1,3 +1,4 @@
+import configparser
 import json
 from datetime import datetime
 from itertools import zip_longest
@@ -6,9 +7,21 @@ from flask import Flask, request, Response, url_for
 from sqlalchemy import and_, func, desc
 
 from ..db import get_session, Post, User, Thread
+from .. import config
 
 app = Flask(__name__)
 no_default = object()
+
+cfg = configparser.ConfigParser()
+try:
+    with open(config.INI_PATH, 'r') as fd:
+        cfg.read_file(fd)
+except FileNotFoundError:
+    pass
+try:
+    app.config.from_mapping({k.upper(): v for k, v in cfg['flask'].items()})
+except KeyError:
+    pass
 
 
 def json_response(data, status_code=200):
@@ -202,7 +215,6 @@ def api():
     apis = []
     for rule in app.url_map.iter_rules():
         if rule.rule.startswith('/api') and rule.endpoint != 'api':
-            #apis.append(request.host_url + rule.rule)
             apis.append(url_for(rule.endpoint, _external=True))
     return json_response({'apis': apis})
 

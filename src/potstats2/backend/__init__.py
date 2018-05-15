@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from itertools import zip_longest
 
-from flask import Flask, request, Response
+from flask import Flask, request, Response, url_for
 from sqlalchemy import and_, func, desc
 
 from ..db import get_session, Post, User, Thread
@@ -183,6 +183,7 @@ def time_segregated_stats(time_column, time_column_name):
     view.__name__ = 'view_' + time_column_name
     return view
 
+
 app.route('/api/weekday-stats')(
     time_segregated_stats(func.strftime('%w', Post.timestamp), 'weekday')
 )
@@ -192,8 +193,18 @@ app.route('/api/hourly-stats')(
 )
 
 app.route('/api/year-over-year-stats')(
-time_segregated_stats(func.strftime('%Y', Post.timestamp), 'year')
+    time_segregated_stats(func.strftime('%Y', Post.timestamp), 'year')
 )
+
+
+@app.route('/api')
+def api():
+    apis = []
+    for rule in app.url_map.iter_rules():
+        if rule.rule.startswith('/api') and rule.endpoint != 'api':
+            #apis.append(request.host_url + rule.rule)
+            apis.append(url_for(rule.endpoint, _external=True))
+    return json_response({'apis': apis})
 
 
 def main():

@@ -4,7 +4,7 @@ from datetime import datetime
 from itertools import zip_longest
 
 from flask import Flask, request, Response, url_for
-from sqlalchemy import and_, func, desc
+from sqlalchemy import and_, func, desc, cast, Float
 
 from ..db import get_session, Post, User, Thread
 from .. import config
@@ -101,44 +101,36 @@ def poster_stats():
     except KeyError:
         raise APIError('Invalid order_by: %s' % order_by_order)
 
-    threads_opened = (
+    threads_opened = apply_year_filter(
         session
         .query(
             User.uid,
             func.count(Thread.tid).label('threads_created'),
         )
-        .filter(Thread.first_post == Post.pid)
-        .filter(Post.poster_uid == User.uid)
-    )
+        .join(Post.poster)
+        .join(Thread, Thread.first_pid == Post.pid)
+    ).group_by(User.uid).subquery()
 
-    threads_opened = (
-        apply_year_filter(threads_opened)
-        .group_by(User.uid)
-        .subquery('to')
-    )
+    post_stats = apply_year_filter(
+        session
+        .query(
+            User.uid,
+            func.count(Post.pid).label('post_count'),
+            func.sum(Post.edit_count).label('edit_count'),
+            cast(func.avg(func.length(Post.content)), Float).label('avg_post_length'),
+        )
+        .join(Post.poster)
+    ).group_by(User.uid).subquery()
 
     query = (
         session
         .query(
             User,
-            func.count(Post.pid).label('post_count'),
-            func.sum(Post.edit_count).label('edit_count'),
-            func.avg(func.length(Post.content)).label('avg_post_length'),
+            post_stats,
             func.coalesce(threads_opened.c.threads_created, 0).label('threads_created'),
         )
-        .filter(Post.poster_uid == User.uid)
-        # The OUTER JOIN will create rows with NULL to.c.threads_created if the user created no threads
-        # (because there is no row matching the WHERE clause the aggregation has no result so the outer join
-        #  inserts NULLs into the resulting columns).
-        # These are killed off by the COALESCE above.
         .outerjoin(threads_opened, threads_opened.c.uid == User.uid)
-    )
-
-    query = apply_year_filter(query)
-
-    query = (
-        query
-        .group_by(User)
+        .join(post_stats, post_stats.c.uid == User.uid)
         .order_by(order_by)
         .limit(limit)
     )
@@ -165,10 +157,11 @@ def time_segregated_stats(time_column, time_column_name):
             .query(
                 func.count(Post.pid).label('post_count'),
                 func.sum(Post.edit_count).label('edit_count'),
-                func.avg(func.length(Post.content)).label('avg_post_length'),
+                cast(func.avg(func.length(Post.content)), Float).label('avg_post_length'),
                 time_column.label(time_column_name)
             )
             .group_by(time_column_name)
+            .order_by(time_column_name)
         )
         threads_query = apply_year_filter(
             session
@@ -176,8 +169,9 @@ def time_segregated_stats(time_column, time_column_name):
                 func.count(Thread.tid).label('threads_created'),
                 time_column.label(time_column_name)
             )
-            .filter(Thread.first_post == Post.pid)
+            .join(Thread.first_post)
             .group_by(time_column_name)
+            .order_by(time_column_name)
         )
 
         for p, t in zip_longest(post_query.all(), threads_query.all()):
@@ -198,15 +192,15 @@ def time_segregated_stats(time_column, time_column_name):
 
 
 app.route('/api/weekday-stats')(
-    time_segregated_stats(func.strftime('%w', Post.timestamp), 'weekday')
+    time_segregated_stats(func.to_char(Post.timestamp, 'ID'), 'weekday')
 )
 
 app.route('/api/hourly-stats')(
-    time_segregated_stats(func.strftime('%W:%w:%H', Post.timestamp), 'weekday_hour')
+    time_segregated_stats(func.to_char(Post.timestamp, 'WW:ID:HH24'), 'weekday_hour')
 )
 
 app.route('/api/year-over-year-stats')(
-    time_segregated_stats(func.strftime('%Y', Post.timestamp), 'year')
+    time_segregated_stats(func.extract('year', Post.timestamp), 'year')
 )
 
 

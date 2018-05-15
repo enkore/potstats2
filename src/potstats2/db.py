@@ -1,7 +1,7 @@
 import sys
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, CheckConstraint
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 import click
@@ -85,6 +85,8 @@ class Board(Base):
     name = Column(Unicode)
     description = Column(Unicode)
 
+    category = relationship('Category')
+
     # XML:number-of-threads
     # XML:number-of-replies
 
@@ -110,10 +112,13 @@ class Thread(Base):
     # XML:number-of-replies, but this is not always correct iirc
     est_number_of_replies = Column(Integer)
 
+    first_pid= Column(ForeignKey('posts.pid'))
     # Our last processed post, that is.
-    last_post = Column(ForeignKey('posts.pid'))
+    last_pid = Column(ForeignKey('posts.pid'))
 
-    first_post= Column(ForeignKey('posts.pid'))
+    board = relationship('Board')
+    first_post = relationship('Post', foreign_keys=first_pid, post_update=True)
+    last_post = relationship('Post', foreign_keys=last_pid, post_update=True)
 
 
 class Post(Base):
@@ -135,6 +140,10 @@ class Post(Base):
 
     title = Column(Unicode)
     content = Column(UnicodeText)
+
+    poster = relationship('User', foreign_keys=poster_uid)
+    last_edit_user = relationship('User', foreign_keys=last_edit_uid)
+    thread = relationship('Thread', foreign_keys=tid)
 
 
 class WorldeaterState(Base):

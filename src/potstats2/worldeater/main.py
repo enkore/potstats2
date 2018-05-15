@@ -60,7 +60,7 @@ def sync_boards(session, categories):
             dbboard = session.query(Board).get(bid) or Board(bid=bid)
             dbboard.name = board.find('./name').text
             dbboard.description = board.find('./description').text
-            dbboard.cid = int(board.find('./in-category').attrib['id'])
+            dbboard.category = session.query(Category).get(int(board.find('./in-category').attrib['id']))
             session.add(dbboard)
             bar.update(1)
         session.commit()
@@ -82,19 +82,19 @@ def merge_posts(session, dbthread, posts):
         pid = int(post.attrib['id'])
         # We roundtrip to the DB for each post here, but that's most likely not a problem
         # because we get at most 30 posts per 0.2 s (API rate limiting and network speed).
-        dbpost = session.query(Post).get(pid) or Post(pid=pid, tid=dbthread.tid)
-        dbpost.poster_uid = User.from_xml(session, post.find('./user')).uid
+        dbpost = session.query(Post).get(pid) or Post(pid=pid, thread=dbthread)
+        dbpost.poster = User.from_xml(session, post.find('./user'))
         dbpost.timestamp = datetime_from_xml(post.find('./date'))
         edited = post.find('./message/edited')
         dbpost.edit_count = int(edited.attrib['count'])
         if dbpost.edit_count:
-            dbpost.last_edit_uid = User.from_xml(session, edited.find('./lastedit/user')).uid
+            dbpost.last_edit_user = User.from_xml(session, edited.find('./lastedit/user'))
             dbpost.last_edit_timestamp = datetime_from_xml(edited.find('./lastedit/date'))
         dbpost.title = post.find('./message/title').text
         dbpost.content = post.find('./message/content').text
         session.add(dbpost)
-    if post:
-        dbthread.last_post = max(dbthread.last_post or 0, pid)
+    if post and dbpost.pid > (dbthread.last_pid or 0):
+        dbthread.last_post = dbpost
     return i + 1
 
 
@@ -114,7 +114,7 @@ def thread_from_xml(session, thread):
     """
     tid = int(thread.attrib['id'])
     dbthread = session.query(Thread).get(tid) or Thread(tid=tid)
-    dbthread.bid = int(thread.find('./in-board').attrib['id'])
+    dbthread.board = session.query(Board).get(int(thread.find('./in-board').attrib['id']))
     dbthread.title = thread.find('./title').text
     dbthread.subtitle = thread.find('./subtitle').text
     dbthread.is_closed = i2b(thread.find('./flags/is-closed'))
@@ -167,7 +167,7 @@ def main():
     threads_needing_update = {}  # TID --> (start_page, number_of_posts_estimated)
 
     with ElapsedProgressBar(session.query(Thread).filter_by(bid=bid).all(),
-                                     show_pos=True, label='Finding updated threads') as bar:
+                            show_pos=True, label='Finding updated threads') as bar:
         for dbthread in bar:
             if dbthread.last_post:
                 thread = api.thread(dbthread.tid, pid=dbthread.last_post)
@@ -211,7 +211,7 @@ def main():
             num_merged_posts = merge_pages(api, session, dbthread, start_page)
             if num_merged_posts:  # ProgressBar.update doesn't like zero.
                 bar.update(num_merged_posts)
-            dbthread.first_post = session.query(Post.pid).filter(Post.tid == dbthread.tid).order_by(Post.pid).first()[0]
+            dbthread.first_post = session.query(Post).filter(Post.tid == dbthread.tid).order_by(Post.pid).first()
             session.commit()
 
     ws = WorldeaterState.get(session)

@@ -11,7 +11,7 @@ Setting = namedtuple('Setting', 'description default')
 SETTINGS = {
     'DB': Setting('Database url, see https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls',
                   default='sqlite:///db.sqlite3'),
-    'REQUEST_DELAY': Setting('Delay between requests, not including request processing time.', '0.15'),
+    'REQUEST_DELAY': Setting('Delay between requests, not including request processing time.', '0.05'),
     'DEBUG': Setting('Enable post-mortem debugging', 'True'),
 }
 

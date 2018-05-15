@@ -171,12 +171,12 @@ def main(board_id):
                             show_pos=True, label='Finding updated threads') as bar:
         for dbthread in bar:
             if dbthread.last_post:
-                thread = api.thread(dbthread.tid, pid=dbthread.last_post)
+                thread = api.thread(dbthread.tid, pid=dbthread.last_post.pid)
                 # Might advance dbthread.last_post to the last post on this page
                 posts = thread.findall('./posts/post')
                 merge_posts(session, dbthread, posts)
                 pids = [int(post.attrib['id']) for post in posts]
-                last_on_page = pids[-1] == dbthread.last_post
+                last_on_page = pids[-1] == dbthread.last_post.pid
                 last_page = int(thread.find('./number-of-pages').attrib['value']) == int(thread.find('./posts').attrib['page'])
 
                 if last_on_page and (last_page or len(posts) < 30):
@@ -194,7 +194,7 @@ def main(board_id):
                     # never be able to tell it doesn't.
                     continue
 
-                index_in_page = pids.index(dbthread.last_post)
+                index_in_page = pids.index(dbthread.last_post.pid)
                 index_in_thread = int(thread.find('./posts').attrib['offset']) + index_in_page
                 num_replies = int(thread.find('./number-of-replies').attrib['value'])
                 # Due to XML:number-of-replies inaccuracy this might become negative

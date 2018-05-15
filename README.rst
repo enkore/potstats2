@@ -85,3 +85,14 @@ a database session!).
 can be accessed through ``session.bind`` or ``potstats2.db.get_engine()``.
 
 - https://docs.sqlalchemy.org/en/latest/orm/tutorial.html#querying
+
+Ideas corner
+------------
+
+    Auf jeden Fall muss ein "Verfasser-Guess" auf Basis eines deep learning frameworks rein. 
+    
+    -- Oli
+
+"Personal statistics", so filtering stats by a user to see things like when a specific user posts. I wouldn't feel comfortable to make this public (even though it technically kinda already is), so this should probably be private to users. This could be done by having a Bot-account PM a login link on request. Or something like that.
+
+Thread tags aren't captured

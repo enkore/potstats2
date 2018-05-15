@@ -119,8 +119,8 @@ class Thread(Base):
 class Post(Base):
     __tablename__ = 'posts'
     __table_args__ = (
-        CheckConstraint('last_edit_uid is null or edit_count', name='last_edit_uid_check'),
-        CheckConstraint('last_edit_timestamp is null or edit_count', name='last_edit_timestamp_check'),
+        CheckConstraint('last_edit_uid is null or edit_count > 0', name='last_edit_uid_check'),
+        CheckConstraint('last_edit_timestamp is null or edit_count > 0', name='last_edit_timestamp_check'),
     )
 
     pid = bb_id_column()

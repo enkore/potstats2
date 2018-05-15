@@ -128,7 +128,8 @@ def thread_from_xml(session, thread):
 
 
 @click.command()
-def main():
+@click.option('--board-id', default=53)
+def main(board_id):
     setup_debugger()
     print('nomnomnom')
     t0 = perf_counter()
@@ -143,7 +144,7 @@ def main():
     #                            for post in categories.findall('.//post'))
     # print('Newest post in TID %s [%s]' % (latest_post_thread.attrib['id'], latest_post_thread.text))
 
-    bid = 53  # pot 14 is love, pot is life
+    bid = board_id  # pot 14 is love, pot is life
     board = api.board(bid)
 
     # This is incorrect, because we are working from newest to oldest

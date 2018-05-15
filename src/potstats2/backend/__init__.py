@@ -2,6 +2,7 @@ import configparser
 import json
 from datetime import datetime
 from itertools import zip_longest
+from collections import defaultdict
 
 from flask import Flask, request, Response, url_for
 from sqlalchemy import and_, func, desc, cast, Float
@@ -151,7 +152,7 @@ def poster_stats():
 def time_segregated_stats(time_column, time_column_name):
     def view():
         session = get_session()
-        rows = []
+        rows = defaultdict(lambda: {'post_count': 0, 'edit_count': 0, 'avg_post_length': 0, 'threads_created': 0})
         post_query = apply_year_filter(
             session
             .query(
@@ -174,17 +175,10 @@ def time_segregated_stats(time_column, time_column_name):
             .order_by(time_column_name)
         )
 
-        for p, t in zip_longest(post_query.all(), threads_query.all()):
-            row = {}
-            if p:
-                row.update(p._asdict())
-            else:
-                row.update({'post_count': 0, 'edit_count': 0, 'avg_post_length': 0})
-            if t:
-                row.update(t._asdict())
-            else:
-                row.update({'threads_created': 0})
-            rows.append(row)
+        for q in (post_query, threads_query):
+            for row in q.all():
+                row = row._asdict()
+                rows[row.pop(time_column_name)].update(row)
 
         return json_response({'rows': rows})
     view.__name__ = 'view_' + time_column_name

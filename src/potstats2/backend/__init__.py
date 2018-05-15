@@ -7,7 +7,7 @@ from collections import defaultdict
 from flask import Flask, request, Response, url_for
 from sqlalchemy import and_, func, desc, cast, Float
 
-from ..db import get_session, Post, User, Thread
+from ..db import get_session, Post, User, Thread, Board
 from .. import config
 
 app = Flask(__name__)
@@ -84,6 +84,18 @@ def apply_board_filter(query, bid=no_default):
 
 def apply_standard_filters(query):
     return apply_board_filter(apply_year_filter(query))
+
+
+@app.route('/api/boards')
+def boards():
+    session = get_session()
+    rows = {}
+    for board in session.query(Board).all():
+        rows[board.bid] = {
+            'name': board.name,
+            'description': board.description,
+        }
+    return json_response(rows)
 
 
 @app.route('/api/poster-stats')

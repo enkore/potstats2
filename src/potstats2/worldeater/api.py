@@ -49,7 +49,7 @@ class XmlApiConnector:
         time.sleep(self.request_delay)
         # Note: response.encoding is, for some reason, ISO-8859-1; the XML is UTF-8
         # (Meanwhile, response.apparent_encoding is correct, but response.text is still broken)
-        root_element = ET.fromstring(response.content.decode())
+        root_element = ET.fromstring(response.content.replace(b'\x00', b'').decode())
         return root_element
 
     def boards(self):

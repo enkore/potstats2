@@ -74,6 +74,18 @@ def apply_year_filter(query, year=no_default):
     return query
 
 
+def apply_board_filter(query, bid=no_default):
+    if bid is no_default:
+        bid = request_arg('bid', int, default=None)
+    if bid:
+        query = query.filter(Post.thread.has(Thread.bid == bid))
+    return query
+
+
+def apply_standard_filters(query):
+    return apply_board_filter(apply_year_filter(query))
+
+
 @app.route('/api/poster-stats')
 def poster_stats():
     """
@@ -102,7 +114,7 @@ def poster_stats():
     except KeyError:
         raise APIError('Invalid order_by: %s' % order_by_order)
 
-    threads_opened = apply_year_filter(
+    threads_opened = apply_standard_filters(
         session
         .query(
             User.uid,
@@ -112,7 +124,7 @@ def poster_stats():
         .join(Thread, Thread.first_pid == Post.pid)
     ).group_by(User.uid).subquery()
 
-    post_stats = apply_year_filter(
+    post_stats = apply_standard_filters(
         session
         .query(
             User.uid,
@@ -153,7 +165,7 @@ def time_segregated_stats(time_column, time_column_name):
     def view():
         session = get_session()
         rows = defaultdict(lambda: {'post_count': 0, 'edit_count': 0, 'avg_post_length': 0, 'threads_created': 0})
-        post_query = apply_year_filter(
+        post_query = apply_standard_filters(
             session
             .query(
                 func.count(Post.pid).label('post_count'),
@@ -164,7 +176,7 @@ def time_segregated_stats(time_column, time_column_name):
             .group_by(time_column_name)
             .order_by(time_column_name)
         )
-        threads_query = apply_year_filter(
+        threads_query = apply_standard_filters(
             session
             .query(
                 func.count(Thread.tid).label('threads_created'),

@@ -19,11 +19,13 @@ Setup
 -----
 
 1. Set up postgres or use postgres instance at potstats2.enkore.de via SSH port forwarding (see ticket #1).
+
    For Arch Linux:
 
    - Install postgres package.
    - ``su -l postgres``
    - ``[postgres]$ initdb --locale $LANG -E UTF8 -D '/var/lib/postgres/data' --data-checksums``
+   - ``# systemctl enable postgresql; systemctl start postgresql``
    - ``[postgres]$ createuser --superuser $YOUR_LOGIN``
    - ``[$YOUR_LOGIN]$ createdb potstats2``
 
@@ -35,13 +37,14 @@ Setup
     pip install [-e,--editable] .
 
 3. Configuration (src/potstats2/config.py):
-  - Optional config file (``~/.config/potstats2.ini``)::
+
+   - Optional config file (``~/.config/potstats2.ini``)::
 
       [potstats2]
       # See https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
       db = postgresql://scott:tiger@localhost/mydatabase
 
-  - Environment variables override config file::
+   - Environment variables override config file::
 
       # No post-mortem debugger
       export POTSTATS2_DEBUG=0

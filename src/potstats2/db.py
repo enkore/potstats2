@@ -7,6 +7,7 @@ from sqlalchemy.ext.declarative import declarative_base
 import click
 
 from . import config
+from .util import ElapsedProgressBar
 
 
 def get_engine():
@@ -35,6 +36,71 @@ def main():
 def create_schema():
     engine = get_engine()
     Base.metadata.create_all(engine)
+
+
+@main.command()
+def analytics():
+    session = get_session()
+    session.query(QuoteRelation).delete()
+
+    num_posts = session.query(Post).count()
+    with ElapsedProgressBar(length=num_posts, label='Analyzing quote relationships') as bar:
+        for post in session.query(Post).yield_per(1000).enable_eagerloads(False):
+            analyze_post(session, post)
+            bar.update(1)
+    print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s), '
+          'discovered {} quote relationships.'
+          .format(num_posts, bar.elapsed, num_posts / bar.elapsed, session.query(QuoteRelation).count()))
+    session.commit()
+
+
+def analyze_post(session, post):
+    in_tag = False
+    current_tag = ''
+    quote_level = 0
+
+    def update_edge(quote_tag, poster):
+        try:
+            # quote=tid,pid,"user"
+            _, _, params = quote_tag.partition('=')
+            # tid,pid,"user"
+            tid, pid, user_name = params.split(',', maxsplit=3)
+            pid = int(pid)
+        except ValueError as ve:
+            print('PID %d: Malformed quote= tag: %r (%s)' % (post.pid, quote_tag, ve))
+            return
+
+        try:
+            quotee = session.query(Post).get(pid).poster
+        except AttributeError:
+            print('PID %d: Quoted PID not on record: %d' % (post.pid, pid))
+            return
+        edge = session.query(QuoteRelation).get((poster.uid, quotee.uid))
+        if not edge:
+            edge = QuoteRelation(quoter=poster, quotee=quotee, count=0)
+            session.add(edge)
+        edge.count += 1
+
+    if not post.content:
+        return
+
+    for char in post.content:
+        if char == '[':
+            in_tag = True
+            current_tag = ''
+        elif char == ']':
+            in_tag = False
+
+            if current_tag.startswith('quote'):
+                quote_level += 1
+            elif current_tag == '/quote':
+                quote_level -= 1
+
+            if quote_level == 1 and current_tag.startswith('quote='):
+                update_edge(current_tag, post.poster)
+        elif in_tag:
+            current_tag += char
+
 
 
 Base = declarative_base()
@@ -173,3 +239,15 @@ class WorldeaterState(Base):
             state = WorldeaterState()
             session.add(state)
         return state
+
+
+class QuoteRelation(Base):
+    __tablename__ = 'quote_relation'
+
+    quoter_uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
+    quotee_uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
+
+    quoter = relationship('User', foreign_keys=quoter_uid)
+    quotee = relationship('User', foreign_keys=quotee_uid)
+
+    count = Column(Integer, default=0)

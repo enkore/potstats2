@@ -7,37 +7,54 @@ A classic three-zoo enterprise architecture:
 - Backend: A JSON-API-to-RDBMS connector
 - Frontend: Need that one too :D
 
-Backoffice
-----------
+Le Stack
 
-Installation (possibly not conforming to recent-est PyPA guidelines)::
+- Database: PostgreSQL
+- Database connector: sqlalchemy/psycopg2
+- HTTP adapter: flask
+
+Public instance lives at http://potstats2.enkore.de/api (no TLS yet, because that would show up in public CT logs).
+
+Setup
+-----
+
+1. Set up postgres or use postgres instance at potstats2.enkore.de via SSH port forwarding (see ticket #1).
+   For Arch Linux:
+
+   - Install postgres package.
+   - ``su -l postgres``
+   - ``[postgres]$ initdb --locale $LANG -E UTF8 -D '/var/lib/postgres/data' --data-checksums``
+   - ``[postgres]$ createuser --superuser $YOUR_LOGIN``
+   - ``[$YOUR_LOGIN]$ createdb potstats2``
+
+   This should work with the default database URL (``postgresql://localhost/potstats2``).
+2. Create Python environment (possibly not conforming to recent-est PyPA guidelines)::
 
     virtualenv --python=python3 _venv
     . _venv/bin/activate
     pip install [-e,--editable] .
 
-Configuration (src/potstats2/config.py):
+3. Configuration (src/potstats2/config.py):
+  - Optional config file (``~/.config/potstats2.ini``)::
 
-- Optional config file (``~/.config/potstats2.ini``)::
+      [potstats2]
+      # See https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
+      db = postgresql://scott:tiger@localhost/mydatabase
 
-    [potstats2]
-    # See https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
-    db = sqlite:////home/foo/somewhere/db.sqlite3
+  - Environment variables override config file::
 
-- Environment variables override config file::
+      # No post-mortem debugger
+      export POTSTATS2_DEBUG=0
 
-    # Use in-memory DB
-    export POTSTATS2_DB=sqlite://
-    # No post-mortem debugger
-    export POTSTATS2_DEBUG=0
-
-Create DB schema (probably use alembic later)::
+4. Create DB schema (probably use alembic later)::
 
     potstats2-db create_schema
 
-Run crawler (currently runs against some random subforum no one ever cared about, so this should take all but a minute)::
+5. Load database dump or run crawler (currently runs against some random subforum no one ever cared about, so this should take all but a minute)::
 
-    potstats2-worldeater
+-  Database dump: Fetch https://pstore.enkore.de/dump-2018-05-16-200%7E54159332c65cf2b3728775b9601580fa65fa9b41a2c5e5bcd85a5936552fadbe%7E.sql.gz
+   and run ``gunzip dump...sql.gz | psql potstats2``.
+-  Crawler: potstats2-worldeater
 
 Error handling
 ++++++++++++++

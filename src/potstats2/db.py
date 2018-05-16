@@ -1,13 +1,14 @@
 import sys
 
-from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, CheckConstraint
+from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, CheckConstraint, func
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.postgresql import insert
 
 import click
 
 from . import config
-from .util import ElapsedProgressBar
+from .util import ElapsedProgressBar, chunk_query
 
 
 def get_engine():
@@ -45,12 +46,12 @@ def analytics():
 
     num_posts = session.query(Post).count()
     with ElapsedProgressBar(length=num_posts, label='Analyzing quote relationships') as bar:
-        for post in session.query(Post).yield_per(1000).enable_eagerloads(False):
+        for post in chunk_query(session.query(Post), Post.pid, chunk_size=10000):
             analyze_post(session, post)
             bar.update(1)
-    print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s), '
-          'discovered {} quote relationships.'
-          .format(num_posts, bar.elapsed, num_posts / bar.elapsed, session.query(QuoteRelation).count()))
+    print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s), discovering {} quote relationships and {} quotes.'
+          .format(num_posts, bar.elapsed, num_posts / bar.elapsed,
+                  session.query(QuoteRelation).count(), session.query(func.sum(QuoteRelation.count)).one()))
     session.commit()
 
 
@@ -59,7 +60,7 @@ def analyze_post(session, post):
     current_tag = ''
     quote_level = 0
 
-    def update_edge(quote_tag, poster):
+    def update_edge(quote_tag, poster_uid):
         try:
             # quote=tid,pid,"user"
             _, _, params = quote_tag.partition('=')
@@ -71,15 +72,17 @@ def analyze_post(session, post):
             return
 
         try:
-            quotee = session.query(Post).get(pid).poster
+            quotee_uid = session.query(Post).get(pid).poster_uid
         except AttributeError:
             print('PID %d: Quoted PID not on record: %d' % (post.pid, pid))
             return
-        edge = session.query(QuoteRelation).get((poster.uid, quotee.uid))
-        if not edge:
-            edge = QuoteRelation(quoter=poster, quotee=quotee, count=0)
-            session.add(edge)
-        edge.count += 1
+
+        stmt = insert(QuoteRelation.__table__).values(quoter_uid=poster_uid, quotee_uid=quotee_uid, count=1)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=QuoteRelation.__table__.primary_key.columns,
+            set_=dict(count=stmt.excluded.count + QuoteRelation.__table__.c.count)
+        )
+        session.execute(stmt)
 
     if not post.content:
         return
@@ -97,10 +100,9 @@ def analyze_post(session, post):
                 quote_level -= 1
 
             if quote_level == 1 and current_tag.startswith('quote='):
-                update_edge(current_tag, post.poster)
+                update_edge(current_tag, post.poster_uid)
         elif in_tag:
             current_tag += char
-
 
 
 Base = declarative_base()

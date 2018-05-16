@@ -1,4 +1,5 @@
 from time import perf_counter
+
 from click._termui_impl import ProgressBar
 
 
@@ -26,3 +27,20 @@ class ElapsedProgressBar(ProgressBar):
         self.render_progress()
         self.file.write(' ... elapsed %.1f s' % self.elapsed)
         super().render_finish()
+
+
+def chunk_query(query, primary_key, chunk_size=1000):
+    """
+    Split a query into smaller ones along the given primary key.
+    """
+    last_id = None
+    while True:
+        q = query
+        if last_id is not None:
+            q = query.filter(primary_key > last_id)
+        row = None
+        for row in q.order_by(primary_key).limit(chunk_size):
+            yield row
+        if row is None:
+            break
+        last_id = primary_key.__get__(row, primary_key) if row else None

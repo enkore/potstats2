@@ -188,7 +188,7 @@ app.route('/api/year-over-year-stats')(
 )
 
 
-@app.route('/api')
+@app.route('/api/')
 def api():
     apis = []
     for rule in app.url_map.iter_rules():

@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from time import perf_counter
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, CheckConstraint, func
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, Query
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert
 
@@ -46,7 +46,6 @@ def analytics():
     session = get_session()
     session.query(QuoteRelation).delete()
     session.query(PostLinks).delete()
-    session.query(LinkRelation).delete()
 
     num_posts = session.query(Post).count()
     with ElapsedProgressBar(length=num_posts, label='Analyzing posts') as bar:
@@ -64,16 +63,8 @@ def analytics():
 
 
 def analyze_post_links(session):
-    # poor man's REFRESH MATERIALIZED VIEW
     t0 = perf_counter()
-    q = (
-        session
-        .query(PostLinks.domain, User.uid, func.sum(PostLinks.count))
-        .join('post', 'poster')
-        .group_by(PostLinks.domain, User.uid)
-    )
-    stmt = insert(LinkRelation.__table__).from_select(['domain', 'uid', 'count'], q)
-    session.execute(stmt)
+    LinkRelation.refresh(session)
     elapsed = perf_counter() - t0
     print('Aggregated {} links into {} link relationships in {:.1f} s.'
           .format(session.query(PostLinks).count(), session.query(LinkRelation).count(), elapsed))
@@ -331,3 +322,21 @@ class PostLinks(Base):
     count = Column(Integer, default=0)
 
     post = relationship('Post')
+
+
+from .materialized_view import create_materialized_view, materialized_view_base
+
+
+class LinkRelationMV(materialized_view_base(Base)):
+    __table__ = create_materialized_view(
+        Base.metadata,
+        'link_relation_mv',
+        Query((PostLinks.domain, User.uid, func.sum(PostLinks.count)))
+        .join('post', 'poster')
+        .group_by(PostLinks.domain, User.uid)
+        .subquery()
+    )
+
+    # relationship() doesn't really work here, because the Columns are not actually declared anywhere
+    # for sqlalchemy.
+    # So querying this one would also be a bit annoying.

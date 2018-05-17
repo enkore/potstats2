@@ -2,8 +2,9 @@ import sys
 from urllib.parse import urlparse
 from time import perf_counter
 
-from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, CheckConstraint, func
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
+    CheckConstraint, func
+from sqlalchemy.orm import sessionmaker, relationship, Query, Session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert
 
@@ -46,7 +47,6 @@ def analytics():
     session = get_session()
     session.query(QuoteRelation).delete()
     session.query(PostLinks).delete()
-    session.query(LinkRelation).delete()
 
     num_posts = session.query(Post).count()
     with ElapsedProgressBar(length=num_posts, label='Analyzing posts') as bar:
@@ -64,16 +64,8 @@ def analytics():
 
 
 def analyze_post_links(session):
-    # poor man's REFRESH MATERIALIZED VIEW
     t0 = perf_counter()
-    q = (
-        session
-        .query(PostLinks.domain, User.uid, func.sum(PostLinks.count))
-        .join('post', 'poster')
-        .group_by(PostLinks.domain, User.uid)
-    )
-    stmt = insert(LinkRelation.__table__).from_select(['domain', 'uid', 'count'], q)
-    session.execute(stmt)
+    LinkRelation.refresh(session)
     elapsed = perf_counter() - t0
     print('Aggregated {} links into {} link relationships in {:.1f} s.'
           .format(session.query(PostLinks).count(), session.query(LinkRelation).count(), elapsed))
@@ -270,6 +262,29 @@ class Post(Base):
     thread = relationship('Thread', foreign_keys=tid)
 
 
+class PseudoMaterializedView(Base):
+    """
+    Helper class for building "poor man's" materialized views,
+    i.e. regular tables that are populated by a query.
+
+    The query attribute should be something Selectable (e.g. a Query()),
+    whose columns match up with the (non-nullable, non-autoincrement) columns
+    of the relation. Otherwise you will get errors on .refresh().
+    """
+    __abstract__ = True
+
+    query: Query = None
+
+    @classmethod
+    def refresh(cls, session: Session):
+        session.flush()
+        session.query(cls).delete()
+        query = cls.query.with_session(session)
+        query_columns = [c['name'] for c in query.column_descriptions]
+        stmt = insert(cls.__table__).from_select(query_columns, query)
+        session.execute(stmt)
+
+
 class WorldeaterState(Base):
     __tablename__ = 'worldeater_state'
     __table_args__ = (
@@ -311,17 +326,6 @@ class QuoteRelation(Base):
     count = Column(Integer, default=0)
 
 
-class LinkRelation(Base):
-    __tablename__ = 'link_relation'
-
-    uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
-    domain = Column(Unicode, primary_key=True)
-
-    count = Column(Integer, default=0)
-
-    user = relationship('User')
-
-
 class PostLinks(Base):
     __tablename__ = 'post_links'
 
@@ -331,3 +335,22 @@ class PostLinks(Base):
     count = Column(Integer, default=0)
 
     post = relationship('Post')
+
+
+class LinkRelation(PseudoMaterializedView):
+    __tablename__ = 'link_relation'
+
+    query = (
+        Query((PostLinks.domain, User.uid, func.sum(PostLinks.count).label('count')))
+        .join('post', 'poster')
+        .group_by(PostLinks.domain, User.uid)
+    )
+
+    uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
+    domain = Column(Unicode, primary_key=True)
+
+    count = Column(Integer, default=0)
+
+    user = relationship('User')
+
+

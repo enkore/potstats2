@@ -65,3 +65,7 @@ def poster_stats(session, year, bid):
     )
 
     return query
+
+
+def aggregate_stats_segregated_by_time(session, time_column, time_column_name, year, bid):
+    pass

@@ -4,7 +4,7 @@ from time import perf_counter
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
     CheckConstraint, func
-from sqlalchemy.orm import sessionmaker, relationship, Query, Session
+from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert
 
@@ -324,6 +324,7 @@ class QuoteRelation(Base):
     quotee = relationship('User', foreign_keys=quotee_uid)
 
     count = Column(Integer, default=0)
+    intensity = query_expression()
 
 
 class PostLinks(Base):

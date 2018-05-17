@@ -4,7 +4,7 @@ import json
 from flask import Flask, request, Response, url_for, g
 from sqlalchemy import func, desc
 
-from ..db import Post, User, Board, QuoteRelation
+from ..db import Post, User
 from .. import db, dal, config
 
 app = Flask(__name__)
@@ -101,14 +101,13 @@ def social_graph():
     session = get_session()
     limit = request_arg('limit', int, default=1000)
     rows = []
-    query = session.query(QuoteRelation).order_by(desc(QuoteRelation.count)).limit(limit)
-    maximum_count, = session.query(func.max(QuoteRelation.count)).one()
+    query = dal.social_graph(session).limit(limit)
     for relation in query.all():
         rows.append({
             'from': relation.quoter,
             'to': relation.quotee,
             'count': relation.count,
-            'intensity': relation.count / maximum_count
+            'intensity': relation.intensity,
         })
     return json_response({'rows': rows})
 

@@ -1,8 +1,10 @@
 from datetime import datetime
 from functools import partial
-from sqlalchemy import func, cast, Float
+from sqlalchemy import func, cast, Float, desc
+from sqlalchemy.orm import with_expression
 
 from .db import User, Board, Thread, Post
+from .db import QuoteRelation
 
 
 def apply_year_filter(query, year=None):
@@ -107,5 +109,16 @@ def boards(session):
         session
         .query(Board, func.count(sq.c.tid).label('thread_count'), func.sum(sq.c.post_count).label('post_count'))
         .join(sq, sq.c.bid == Board.bid).group_by(Board)
+    )
+    return query
+
+
+def social_graph(session):
+    maximum_count, = session.query(func.max(QuoteRelation.count)).one()
+    query = (
+        session
+        .query(QuoteRelation)
+        .options(with_expression(QuoteRelation.intensity, QuoteRelation.count / float(maximum_count)))
+        .order_by(desc(QuoteRelation.count))
     )
     return query

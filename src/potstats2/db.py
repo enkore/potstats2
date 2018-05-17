@@ -324,6 +324,7 @@ class QuoteRelation(Base):
     quotee = relationship('User', foreign_keys=quotee_uid)
 
     count = Column(Integer, default=0)
+    # A number between 0...1 where 1 is the most intense relation.
     intensity = query_expression()
 
 

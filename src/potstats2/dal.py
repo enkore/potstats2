@@ -28,35 +28,47 @@ def apply_board_filter(query, bid=None):
 
 
 def apply_standard_filters(query, year, bid):
+    """
+    Filter query related to Post according to year/bid.
+    """
     return apply_board_filter(apply_year_filter(query, year), bid)
 
 
 def poster_stats(session, year, bid):
+    """
+    Statistics on posts and threads for each user.
+
+    Result columns:
+    user => User
+    post_count, edit_count, avg_post_length, threads_created
+
+    Note: total length of all posts is post_count * avg_post_length.
+    """
     asf = partial(apply_standard_filters, year=year, bid=bid)
     threads_opened = asf(
         session
-            .query(
+        .query(
             User.uid,
             func.count(Thread.tid).label('threads_created'),
         )
-            .join(Post.poster)
-            .join(Thread, Thread.first_pid == Post.pid)
+        .join(Post.poster)
+        .join(Thread, Thread.first_pid == Post.pid)
     ).group_by(User.uid).subquery()
 
     post_stats = asf(
         session
-            .query(
+        .query(
             User.uid,
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
             cast(func.avg(func.length(Post.content)), Float).label('avg_post_length'),
         )
-            .join(Post.poster)
+        .join(Post.poster)
     ).group_by(User.uid).subquery()
 
     query = (
         session
-            .query(
+        .query(
             User,
             post_stats,
             func.coalesce(threads_opened.c.threads_created, 0).label('threads_created'),
@@ -69,10 +81,28 @@ def poster_stats(session, year, bid):
 
 
 def aggregate_stats_segregated_by_time(session, time_column_expression, year, bid):
+    """
+    Aggregate (across all users) statistics on posts and threads, grouped by time_column_expression.
+
+    Result columns:
+    time (=time_column_expression),
+    post_count, edit_count, avg_post_length, threads_created
+
+    time_column_expression is suggested to be something like ``func.to_char(Post.timestamp, 'ID')``
+    or ``func.extract('year', Post.timestamp)`` but could in fact be pretty much any column expression.
+
+    Note that time_column_expression is used in two slightly different contexts:
+    For post statistics it applies to each post individually, while for thread statistics
+    it applies to the first post (the start post) of the thread.
+
+    See also:
+    - https://www.postgresql.org/docs/current/static/functions-formatting.html
+    - https://www.postgresql.org/docs/10/static/functions-datetime.html
+    """
     asf = partial(apply_standard_filters, year=year, bid=bid)
     post_query = asf(
         session
-            .query(
+        .query(
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
             cast(func.avg(func.length(Post.content)), Float).label('avg_post_length'),
@@ -82,7 +112,7 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
     ).subquery()
     threads_query = asf(
         session
-            .query(
+        .query(
             func.count(Thread.tid).label('threads_created'),
             time_column_expression.label('time')
         )
@@ -104,6 +134,12 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
 
 
 def boards(session):
+    """
+    Retrieve boards and aggregate statistics.
+
+    Result columns:
+    Board, thread_count, post_count
+    """
     sq = session.query(Thread.bid, Thread.tid, func.count(Post.pid).label('post_count')).join(Thread.posts).group_by(Thread.tid).subquery()
     query = (
         session
@@ -114,6 +150,11 @@ def boards(session):
 
 
 def social_graph(session):
+    """
+    Retrieve social graph (based on QuoteRelation)
+
+    The row type is QuoteRelation.
+    """
     maximum_count, = session.query(func.max(QuoteRelation.count)).one()
     query = (
         session

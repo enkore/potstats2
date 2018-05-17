@@ -18,9 +18,10 @@ if redis_url and redis:
     redis_client = redis.StrictRedis.from_url(redis_url)
 elif redis_url:
     print('redis-py (pip install redis) not installed - can\'t use caching.')
-
+    redis_client = None
 else:
     print('API request caching disabled.')
+    redis_client = None
 
 
 def cache_key(view, view_args, view_kwargs, request: Request):

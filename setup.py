@@ -14,6 +14,7 @@ setup(
         'sqlalchemy',
         'Flask',
         'psycopg2',
+        'dogpile.cache',
     ],
 
     description='potstats2',

@@ -113,6 +113,7 @@ def social_graph():
 
 
 @app.route('/api/poster-stats')
+@cache_view
 def poster_stats():
     """
     Basic posting statistics on users

@@ -1,13 +1,13 @@
 import configparser
 import json
 from datetime import datetime
-from itertools import zip_longest
 from collections import defaultdict
 
-from flask import Flask, request, Response, url_for
-from sqlalchemy import and_, func, desc, cast, Float
+from flask import Flask, request, Response, url_for, g
+from sqlalchemy import func, desc, cast, Float
 
-from ..db import get_session, Post, User, Thread, Board, QuoteRelation
+from ..db import Post, User, Thread, Board, QuoteRelation
+from .. import db
 from .. import config
 
 app = Flask(__name__)
@@ -23,6 +23,20 @@ try:
     app.config.from_mapping({k.upper(): v for k, v in cfg['flask'].items()})
 except KeyError:
     pass
+
+
+def get_session():
+    try:
+        return g.session
+    except AttributeError:
+        g.session = db.get_session()
+        return g.session
+
+
+@app.teardown_request
+def close_db_session(exc):
+    if hasattr(g, 'session'):
+        g.session.close()
 
 
 class DatabaseAwareJsonEncoder(json.JSONEncoder):

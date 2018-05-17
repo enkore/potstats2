@@ -188,37 +188,12 @@ def poster_stats():
 def time_segregated_stats(time_column, time_column_name):
     def view():
         session = get_session()
+        year = request_arg('year', int, default=None)
+        bid = request_arg('bid', int, default=None)
+
+        query = dal.aggregate_stats_segregated_by_time(session, time_column, year, bid)
+
         rows = {}
-        post_query = apply_standard_filters(
-            session
-            .query(
-                func.count(Post.pid).label('post_count'),
-                func.sum(Post.edit_count).label('edit_count'),
-                cast(func.avg(func.length(Post.content)), Float).label('avg_post_length'),
-                time_column.label('time')
-            )
-            .group_by('time')
-        ).subquery()
-        threads_query = apply_standard_filters(
-            session
-            .query(
-                func.count(Thread.tid).label('threads_created'),
-                time_column.label('time')
-            )
-            .join(Thread.first_post)
-            .group_by('time')
-        ).subquery()
-
-        query = (
-            session.query('post_count', 'edit_count', 'avg_post_length',
-                          # We don't need to COALESCE the post stats,
-                          # because a created thread implies at least one post.
-                          func.coalesce(threads_query.c.threads_created, 0).label('threads_created'),
-                          post_query.c.time)
-            .select_from(post_query).outerjoin(threads_query, post_query.c.time == threads_query.c.time, full=True)
-            .order_by(post_query.c.time)
-        )
-
         for row in query.all():
             row = row._asdict()
             rows[row.pop('time')] = row

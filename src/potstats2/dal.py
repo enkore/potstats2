@@ -1,6 +1,5 @@
 from datetime import datetime
 from functools import partial
-
 from sqlalchemy import func, cast, Float
 
 from .db import User, Post, Thread
@@ -67,5 +66,36 @@ def poster_stats(session, year, bid):
     return query
 
 
-def aggregate_stats_segregated_by_time(session, time_column, time_column_name, year, bid):
-    pass
+def aggregate_stats_segregated_by_time(session, time_column_expression, year, bid):
+    asf = partial(apply_standard_filters, year=year, bid=bid)
+    post_query = asf(
+        session
+            .query(
+            func.count(Post.pid).label('post_count'),
+            func.sum(Post.edit_count).label('edit_count'),
+            cast(func.avg(func.length(Post.content)), Float).label('avg_post_length'),
+            time_column_expression.label('time')
+        )
+        .group_by('time')
+    ).subquery()
+    threads_query = asf(
+        session
+            .query(
+            func.count(Thread.tid).label('threads_created'),
+            time_column_expression.label('time')
+        )
+        .join(Thread.first_post)
+        .group_by('time')
+    ).subquery()
+
+    query = (
+        session
+        .query('post_count', 'edit_count', 'avg_post_length',
+               # We don't need to COALESCE the post stats,
+               # because a created thread implies at least one post.
+               func.coalesce(threads_query.c.threads_created, 0).label('threads_created'),
+               post_query.c.time)
+        .select_from(post_query).outerjoin(threads_query, post_query.c.time == threads_query.c.time, full=True)
+        .order_by(post_query.c.time)
+    )
+    return query

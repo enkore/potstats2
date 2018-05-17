@@ -7,7 +7,7 @@ from collections import defaultdict
 from flask import Flask, request, Response, url_for
 from sqlalchemy import and_, func, desc, cast, Float
 
-from ..db import get_session, Post, User, Thread, Board
+from ..db import get_session, Post, User, Thread, Board, QuoteRelation
 from .. import config
 
 app = Flask(__name__)
@@ -25,8 +25,20 @@ except KeyError:
     pass
 
 
+class DatabaseAwareJsonEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, User):
+            return {
+                'name': o.name,
+                'uid': o.uid,
+            }
+        if callable(getattr(o, 'to_json', None)):
+            return o.to_json()
+        return super().default(o)
+
+
 def json_response(data, status_code=200):
-    return Response(json.dumps(data), status=status_code, mimetype='application/json')
+    return Response(json.dumps(data, cls=DatabaseAwareJsonEncoder), status=status_code, mimetype='application/json')
 
 
 class APIError(Exception):
@@ -96,6 +108,23 @@ def boards():
             'description': board.description,
         }
     return json_response(rows)
+
+
+@app.route('/api/social-graph')
+def social_graph():
+    session = get_session()
+    limit = request_arg('limit', int, default=1000)
+    rows = []
+    query = session.query(QuoteRelation).order_by(desc(QuoteRelation.count)).limit(limit)
+    maximum_count, = session.query(func.max(QuoteRelation.count)).one()
+    for relation in query.all():
+        rows.append({
+            'from': relation.quoter,
+            'to': relation.quotee,
+            'count': relation.count,
+            'intensity': relation.count / maximum_count
+        })
+    return json_response({'rows': rows})
 
 
 @app.route('/api/poster-stats')

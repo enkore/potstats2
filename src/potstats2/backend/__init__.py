@@ -7,8 +7,7 @@ from flask import Flask, request, Response, url_for, g
 from sqlalchemy import func, desc, cast, Float
 
 from ..db import Post, User, Thread, Board, QuoteRelation
-from .. import db
-from .. import config
+from .. import db, dal, config
 
 app = Flask(__name__)
 no_default = object()
@@ -154,6 +153,8 @@ def poster_stats():
     """
     session = get_session()
 
+    year = request_arg('year', int, default=None)
+    bid = request_arg('bid', int, default=None)
     limit = request_arg('limit', int, default=1000)
     order_by_order = request_arg('order_by', str, default='desc')
     order_by_column = request_arg('order_by_column', str, default='post_count')
@@ -169,39 +170,7 @@ def poster_stats():
     except KeyError:
         raise APIError('Invalid order_by: %s' % order_by_order)
 
-    threads_opened = apply_standard_filters(
-        session
-        .query(
-            User.uid,
-            func.count(Thread.tid).label('threads_created'),
-        )
-        .join(Post.poster)
-        .join(Thread, Thread.first_pid == Post.pid)
-    ).group_by(User.uid).subquery()
-
-    post_stats = apply_standard_filters(
-        session
-        .query(
-            User.uid,
-            func.count(Post.pid).label('post_count'),
-            func.sum(Post.edit_count).label('edit_count'),
-            cast(func.avg(func.length(Post.content)), Float).label('avg_post_length'),
-        )
-        .join(Post.poster)
-    ).group_by(User.uid).subquery()
-
-    query = (
-        session
-        .query(
-            User,
-            post_stats,
-            func.coalesce(threads_opened.c.threads_created, 0).label('threads_created'),
-        )
-        .outerjoin(threads_opened, threads_opened.c.uid == User.uid)
-        .join(post_stats, post_stats.c.uid == User.uid)
-        .order_by(order_by)
-        .limit(limit)
-    )
+    query = dal.poster_stats(session, year, bid).order_by(order_by).limit(limit)
 
     rows = []
     for r in query.all():

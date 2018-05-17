@@ -2,29 +2,30 @@ import marshal
 import functools
 import hashlib
 
-from dogpile.cache import make_region
-from dogpile.cache.api import NO_VALUE
+try:
+    import redis
+except ImportError:
+    redis = None
+
 from flask import Request, Response, request
 
+import potstats2
 from .. import config
 
 redis_url = config.get('REDIS_URL')
-if redis_url:
+if redis_url and redis:
     print('Using redis cache at', redis_url)
-    region = make_region().configure(
-        'dogpile.cache.redis',
-        arguments={
-            'url': redis_url,
-            'distributed_lock': True
-        }
-    )
+    redis_client = redis.StrictRedis.from_url(redis_url)
+elif redis_url:
+    print('redis-py (pip install redis) not installed - can\'t use caching.')
+
 else:
     print('API request caching disabled.')
-    region = None
 
 
 def cache_key(view, view_args, view_kwargs, request: Request):
     return hashlib.sha256(marshal.dumps({
+        'version': potstats2.__version__,
         'view': view.__name__,
         'view_args': view_args,
         'view_kwargs': view_kwargs,
@@ -33,17 +34,17 @@ def cache_key(view, view_args, view_kwargs, request: Request):
 
 
 def cache_api_view(view):
-    if not region:
+    if not redis_client:
         return view
 
     @functools.wraps(view)
     def cache_frontend(*args, **kwargs):
         key = cache_key(view, args, kwargs, request)
-        cached = region.get(key)
-        if cached is NO_VALUE:
+        cached = redis_client.get(key)
+        if not cached:
             response = view(*args, **kwargs)
             if response.status_code == 200 and response.mimetype == 'application/json':
-                region.set(key, response.get_data(as_text=False))
+                redis_client.set(key, response.get_data(as_text=False))
             return response
         else:
             return Response(cached, status=200, mimetype='application/json')
@@ -51,5 +52,5 @@ def cache_api_view(view):
 
 
 def invalidate():
-    if region:
-        region.invalidate()
+    if redis_client:
+        redis_client.flushdb()

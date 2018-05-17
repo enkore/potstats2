@@ -93,6 +93,21 @@ Run ``potstats2-backend-dev`` for the usual Flask dev server.
 
 Try http://127.0.0.1:5000/api/poster-stats?year=2003
 
+API caching
++++++++++++
+
+Redis can be used to cache API requests. You likely want to read https://redis.io/topics/lru-cache
+for properly configuring it, though.
+
+After setting redis up, simply set REDIS_URL. The cache is automatically invalidated by
+
+- running database analytics,
+- running worldeater,
+- changing software version.
+
+Manual invalidation is provided by simply flushing the redis database, or alternatively
+for lazy folks, ``potstats2-invalidate-cache``.
+
 About SQLAlchemy
 ----------------
 

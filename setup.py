@@ -14,7 +14,6 @@ setup(
         'sqlalchemy',
         'Flask',
         'psycopg2',
-        'dogpile.cache',
     ],
 
     description='potstats2',
@@ -40,6 +39,7 @@ setup(
             'potstats2-worldeater = potstats2.worldeater.main:main',
             'potstats2-db = potstats2.db:main',
             'potstats2-backend-dev = potstats2.backend:main',
+            'potstats2-invalidate-cache = potstats2.backend.cache:invalidate',
         ],
     },
 )

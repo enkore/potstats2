@@ -84,6 +84,7 @@ def handle_api_error(error: APIError):
 
 
 @app.route('/api/boards')
+@cache_api_view
 def boards():
     session = get_session()
     rows = {}
@@ -98,6 +99,7 @@ def boards():
 
 
 @app.route('/api/social-graph')
+@cache_api_view
 def social_graph():
     session = get_session()
     limit = request_arg('limit', int, default=1000)
@@ -160,6 +162,7 @@ def poster_stats():
 
 
 def time_segregated_stats(time_column, time_column_name):
+    @cache_api_view
     def view():
         session = get_session()
         year = request_arg('year', int, default=None)

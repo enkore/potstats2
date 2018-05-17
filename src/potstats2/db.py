@@ -248,7 +248,7 @@ class Post(Base):
     poster_uid = Column(Integer, ForeignKey('users.uid'))
     tid = Column(Integer, ForeignKey('threads.tid'))
 
-    timestamp = Column(TIMESTAMP)
+    timestamp = Column(TIMESTAMP, index=True)
     edit_count = Column(Integer)
     # NULL iff edit_count=0
     last_edit_uid = Column(Integer, ForeignKey('users.uid'), nullable=True)

@@ -1,12 +1,10 @@
 import configparser
 import json
-from datetime import datetime
-from collections import defaultdict
 
 from flask import Flask, request, Response, url_for, g
-from sqlalchemy import func, desc, cast, Float
+from sqlalchemy import func, desc
 
-from ..db import Post, User, Thread, Board, QuoteRelation
+from ..db import Post, User, Board, QuoteRelation
 from .. import db, dal, config
 
 app = Flask(__name__)
@@ -82,33 +80,6 @@ def request_arg(argument, type, default=no_default):
 @app.errorhandler(APIError)
 def handle_api_error(error: APIError):
     return error.get_response()
-
-
-def apply_year_filter(query, year=no_default):
-    if year is no_default:
-        year = request_arg('year', int, default=None)
-    if year:
-        # [lower, upper)
-        lower_timestamp_bound = datetime(year, 1, 1, 0, 0, 0)
-        upper_timestamp_bound = lower_timestamp_bound.replace(year=year + 1)
-        query = (
-            query
-            .filter(lower_timestamp_bound <= Post.timestamp)
-            .filter(Post.timestamp < upper_timestamp_bound)
-        )
-    return query
-
-
-def apply_board_filter(query, bid=no_default):
-    if bid is no_default:
-        bid = request_arg('bid', int, default=None)
-    if bid:
-        query = query.filter(Post.thread.has(Thread.bid == bid))
-    return query
-
-
-def apply_standard_filters(query):
-    return apply_board_filter(apply_year_filter(query))
 
 
 @app.route('/api/boards')

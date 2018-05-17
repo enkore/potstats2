@@ -2,7 +2,7 @@ from datetime import datetime
 from functools import partial
 from sqlalchemy import func, cast, Float
 
-from .db import User, Post, Thread
+from .db import User, Board, Thread, Post
 
 
 def apply_year_filter(query, year=None):
@@ -97,5 +97,15 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
                post_query.c.time)
         .select_from(post_query).outerjoin(threads_query, post_query.c.time == threads_query.c.time, full=True)
         .order_by(post_query.c.time)
+    )
+    return query
+
+
+def boards(session):
+    sq = session.query(Thread.bid, Thread.tid, func.count(Post.pid).label('post_count')).join(Thread.posts).group_by(Thread.tid).subquery()
+    query = (
+        session
+        .query(Board, func.count(sq.c.tid).label('thread_count'), func.sum(sq.c.post_count).label('post_count'))
+        .join(sq, sq.c.bid == Board.bid).group_by(Board)
     )
     return query

@@ -86,10 +86,12 @@ def handle_api_error(error: APIError):
 def boards():
     session = get_session()
     rows = {}
-    for board in session.query(Board).all():
-        rows[board.bid] = {
-            'name': board.name,
-            'description': board.description,
+    for row in dal.boards(session).all():
+        rows[row.Board.bid] = {
+            'name': row.Board.name,
+            'description': row.Board.description,
+            'thread_count': row.thread_count,
+            'post_count': int(row.post_count),
         }
     return json_response(rows)
 

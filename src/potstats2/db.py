@@ -232,7 +232,7 @@ class Thread(Base):
     # Our last processed post, that is.
     last_pid = Column(ForeignKey('posts.pid'))
 
-    board = relationship('Board')
+    board = relationship('Board', backref='threads')
     first_post = relationship('Post', foreign_keys=first_pid, post_update=True)
     last_post = relationship('Post', foreign_keys=last_pid, post_update=True)
 
@@ -259,7 +259,7 @@ class Post(Base):
 
     poster = relationship('User', foreign_keys=poster_uid)
     last_edit_user = relationship('User', foreign_keys=last_edit_uid)
-    thread = relationship('Thread', foreign_keys=tid)
+    thread = relationship('Thread', foreign_keys=tid, backref='posts')
 
 
 class PseudoMaterializedView(Base):

@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from time import perf_counter
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
-    CheckConstraint, func, Binary
+    CheckConstraint, func
 from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert
@@ -61,6 +61,8 @@ def analytics():
     analyze_post_links(session)
 
     session.commit()
+    from .backend import cache
+    cache.invalidate()
 
 
 def analyze_post_links(session):
@@ -356,9 +358,3 @@ class LinkRelation(PseudoMaterializedView):
     user = relationship('User')
 
 
-class CachedAPIRequest(Base):
-    __tablename__ = 'cached_api_requests'
-
-    key = Column(Binary, primary_key=True)
-    data = Column(Binary)
-    timestamp = Column(TIMESTAMP)

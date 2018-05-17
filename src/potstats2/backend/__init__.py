@@ -1,16 +1,12 @@
 import configparser
-import datetime
-import functools
-import hashlib
 import json
-import marshal
 
-from flask import Flask, request, Response, url_for, g, Request
+from flask import Flask, request, Response, url_for, g
 from sqlalchemy import func, desc
-from sqlalchemy.dialects.postgresql import insert
 
+from ..db import Post, User
 from .. import db, dal, config
-from ..db import Post, User, CachedAPIRequest
+from .cache import cache_api_view
 
 app = Flask(__name__)
 no_default = object()
@@ -39,37 +35,6 @@ def get_session():
 def close_db_session(exc):
     if hasattr(g, 'session'):
         g.session.close()
-
-
-def cache_key(view, view_args, view_kwargs, request: Request):
-    return hashlib.sha256(marshal.dumps({
-        'view': view.__name__,
-        'view_args': view_args,
-        'view_kwargs': view_kwargs,
-        'request_url': request.full_path,  # order controlled by UA, so possibly doubled cache entries
-    })).digest()
-
-
-def cache_api_view(view):
-    @functools.wraps(view)
-    def cache_frontend(*args, **kwargs):
-        key = cache_key(view, args, kwargs, request)
-        session = get_session()
-        cached = session.query(CachedAPIRequest).get(key)
-        if not cached:
-            response = view(*args, **kwargs)
-            if response.status_code == 200 and response.mimetype == 'application/json':
-                stmt = insert(CachedAPIRequest.__table__).values(
-                    key=key, data=response.get_data(as_text=False), timestamp=datetime.datetime.utcnow())
-                stmt = stmt.on_conflict_do_nothing()
-                session.rollback()
-                session.execute(stmt)
-                session.commit()
-            return response
-        else:
-            print('From cache')
-            return Response(cached.data, status=200, mimetype='application/json')
-    return cache_frontend
 
 
 class DatabaseAwareJsonEncoder(json.JSONEncoder):

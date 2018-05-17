@@ -13,6 +13,8 @@ SETTINGS = {
                   'postgresql://localhost/potstats2'),
     'REQUEST_DELAY': Setting('Delay between requests, not including request processing time.', '0.05'),
     'DEBUG': Setting('Enable post-mortem debugging', 'True'),
+    'REDIS_URL': Setting('URL for accessing a Redis cache server, '
+                         'see http://redis-py.readthedocs.io/en/latest/index.html?highlight=from_url#redis.ConnectionPool.from_url', None),
 }
 
 INI_PATH = os.path.expanduser('~/.config/potstats2.ini')

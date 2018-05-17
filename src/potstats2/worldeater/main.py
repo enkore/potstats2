@@ -8,6 +8,7 @@ from .api import XmlApiConnector
 from ..config import setup_debugger
 from ..db import get_session, Category, Board, Thread, Post, User, WorldeaterState
 from ..util import ElapsedProgressBar
+from ..backend import cache
 
 
 def i2b(boolean_xml_tag):
@@ -201,3 +202,4 @@ def main(board_id):
     print('Nomnom time             {:12.0f}           {:5d}'.format(nomnom_time, ws.nomnom_time))
 
     session.commit()
+    cache.invalidate()

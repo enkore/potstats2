@@ -5,6 +5,7 @@ from sqlalchemy.orm import with_expression
 
 from .db import User, Board, Thread, Post
 from .db import QuoteRelation
+from .query_cache import FromCache
 
 
 def apply_year_filter(query, year=None):
@@ -73,6 +74,7 @@ def poster_stats(session, year, bid):
             post_stats,
             func.coalesce(threads_opened.c.threads_created, 0).label('threads_created'),
         )
+        .options(FromCache("default"))
         .outerjoin(threads_opened, threads_opened.c.uid == User.uid)
         .join(post_stats, post_stats.c.uid == User.uid)
     )

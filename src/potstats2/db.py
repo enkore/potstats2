@@ -13,6 +13,8 @@ import click
 from . import config
 from .util import ElapsedProgressBar, chunk_query
 
+from . import query_cache
+
 
 def get_engine():
     db_url = config.get('DB')
@@ -27,7 +29,7 @@ def get_session():
     # not thread safe but if you do that you're an idiot anyway ¯\_(ツ)_/¯
     global _global_session
     if not _global_session:
-        _global_session = sessionmaker(bind=get_engine())
+        _global_session = sessionmaker(bind=get_engine(), query_cls=query_cache.query)
     return _global_session()
 
 

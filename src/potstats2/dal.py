@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import partial
 from sqlalchemy import func, cast, Float, desc
-from sqlalchemy.orm import with_expression
+from sqlalchemy.orm import with_expression, aliased
 
 from .db import User, Board, Thread, Post
 from .db import QuoteRelation, LinkRelation
@@ -165,14 +165,26 @@ def social_graph(session):
     return query
 
 
-def user_domains(session):
-    return session.query(LinkRelation).order_by(desc(LinkRelation.count))
+def user_domains(session, year=None):
+    query = (
+        session
+        .query(User, LinkRelation.domain, func.sum(LinkRelation.count).label('count'))
+        .join(LinkRelation.user)
+        .group_by(User, LinkRelation.domain)
+        .order_by(desc('count'))
+    )
+    if year:
+        query = query.filter(LinkRelation.year == year)
+    return query
 
 
-def domains(session):
-    return (
+def domains(session, year=None):
+    query = (
         session
         .query(func.sum(LinkRelation.count).label('count'), LinkRelation.domain)
         .group_by(LinkRelation.domain)
         .order_by(desc('count'))
     )
+    if year:
+        query = query.filter(LinkRelation.year == year)
+    return query

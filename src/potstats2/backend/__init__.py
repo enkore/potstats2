@@ -120,13 +120,10 @@ def social_graph():
 def user_domains():
     session = get_session()
     limit = request_arg('limit', int, default=1000)
+    year = request_arg('year', int, default=None)
     rows = []
-    for relation in dal.user_domains(session).limit(limit).all():
-        rows.append({
-            'user': relation.user,
-            'domain': relation.domain,
-            'count': relation.count,
-        })
+    for row in dal.user_domains(session, year).limit(limit).all():
+        rows.append(row._asdict())
     return json_response({'rows': rows})
 
 
@@ -135,8 +132,9 @@ def user_domains():
 def domains():
     session = get_session()
     limit = request_arg('limit', int, default=1000)
+    year = request_arg('year', int, default=None)
     rows = []
-    for row in dal.domains(session).limit(limit).all():
+    for row in dal.domains(session, year).limit(limit).all():
         rows.append(row._asdict())
     return json_response({'rows': rows})
 

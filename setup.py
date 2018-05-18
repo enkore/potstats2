@@ -7,7 +7,7 @@ setup(
     name='potstats2',
 
     use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    setup_requires=['setuptools_scm', 'pytest-runner'],
     install_requires=[
         'click',
         'requests',
@@ -15,6 +15,14 @@ setup(
         'Flask',
         'psycopg2',
     ],
+    tests_require=[
+        'potstats2[test]',
+    ],
+    extras_require={
+        'test': [
+            'pytest',
+        ],
+    },
 
     description='potstats2',
     long_description=description,

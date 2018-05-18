@@ -1,9 +1,10 @@
+import enum
 import sys
 from urllib.parse import urlparse
 from time import perf_counter
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
-    CheckConstraint, func
+    CheckConstraint, func, Enum
 from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert
@@ -104,7 +105,7 @@ def analyze_post(session, post):
         )
         session.execute(stmt)
 
-    def update_url(url, post):
+    def update_url(url, link_type, post):
         if url:
             if url[0] == url[-1] and url[0] in ("'", '"'):
                 url = url[1:-1]
@@ -116,7 +117,7 @@ def analyze_post(session, post):
             print('PID %d: Could not parse URL: %r' % (post.pid, url))
             return
 
-        stmt = insert(PostLinks.__table__).values(pid=post.pid, url=url, domain=domain, count=1)
+        stmt = insert(PostLinks.__table__).values(pid=post.pid, url=url, domain=domain, count=1, type=link_type)
         stmt = stmt.on_conflict_do_update(
             index_elements=PostLinks.__table__.primary_key.columns,
             set_=dict(count=stmt.excluded.count + PostLinks.__table__.c.count)
@@ -143,12 +144,25 @@ def analyze_post(session, post):
 
             if quote_level == 0:
                 if current_tag.startswith('url='):
-                    update_url(current_tag[4:], post)
+                    update_url(current_tag[4:], LinkType.link, post)
                 elif current_tag == 'url':
                     capture_contents = True
                 elif current_tag == '/url' and capture_contents:
-                    update_url(tag_contents, post)
+                    update_url(tag_contents, LinkType.link, post)
                     capture_contents = False
+                    tag_contents = ''
+                elif current_tag == 'img':
+                    capture_contents = True
+                elif current_tag == '/img' and capture_contents:
+                    update_url(tag_contents, LinkType.image, post)
+                    capture_contents = False
+                    tag_contents = ''
+                elif current_tag in ('video', 'video play', 'video autoplay'):
+                    capture_contents = True
+                elif current_tag == '/video' and capture_contents:
+                    update_url(tag_contents, LinkType.video, post)
+                    capture_contents = False
+                    tag_contents = ''
         elif in_tag:
             current_tag += char
         elif capture_contents:
@@ -330,11 +344,18 @@ class QuoteRelation(Base):
     intensity = query_expression()
 
 
+class LinkType(enum.Enum):
+    link = 1
+    image = 2
+    video = 3
+
+
 class PostLinks(Base):
     __tablename__ = 'post_links'
 
     pid = Column(Integer, ForeignKey('posts.pid'), primary_key=True)
     url = Column(Unicode, primary_key=True)
+    type = Column(Enum(LinkType), primary_key=True)
     domain = Column(Unicode)
     count = Column(Integer, default=0)
 
@@ -345,16 +366,17 @@ class LinkRelation(PseudoMaterializedView):
     __tablename__ = 'link_relation'
 
     query = (
-        Query((PostLinks.domain, User.uid,
+        Query((PostLinks.domain, User.uid, PostLinks.type,
                func.sum(PostLinks.count).label('count'),
                func.extract('year', Post.timestamp).label('year')))
         .join('post', 'poster')
-        .group_by(PostLinks.domain, User.uid, 'year')
+        .group_by(PostLinks.domain, User.uid, PostLinks.type, 'year')
     )
 
     uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
     domain = Column(Unicode, primary_key=True)
     year = Column(Integer, primary_key=True)
+    type = Column(Enum(LinkType), primary_key=True)
 
     count = Column(Integer, default=0)
 

@@ -345,13 +345,16 @@ class LinkRelation(PseudoMaterializedView):
     __tablename__ = 'link_relation'
 
     query = (
-        Query((PostLinks.domain, User.uid, func.sum(PostLinks.count).label('count')))
+        Query((PostLinks.domain, User.uid,
+               func.sum(PostLinks.count).label('count'),
+               func.extract('year', Post.timestamp).label('year')))
         .join('post', 'poster')
-        .group_by(PostLinks.domain, User.uid)
+        .group_by(PostLinks.domain, User.uid, 'year')
     )
 
     uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
     domain = Column(Unicode, primary_key=True)
+    year = Column(Integer, primary_key=True)
 
     count = Column(Integer, default=0)
 

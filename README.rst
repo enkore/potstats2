@@ -108,6 +108,8 @@ After setting redis up, simply set REDIS_URL. The cache is automatically invalid
 Manual invalidation is provided by simply flushing the redis database, or alternatively
 for lazy folks, ``potstats2-invalidate-cache``.
 
+The Redis DB used for caching is ``0``; DB ``1`` contains some basic statistics.
+
 About SQLAlchemy
 ----------------
 

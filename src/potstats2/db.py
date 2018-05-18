@@ -109,6 +109,10 @@ def analyze_post(session, post):
         if url:
             if url[0] == url[-1] and url[0] in ("'", '"'):
                 url = url[1:-1]
+            if url[0] == '/':
+                url = 'http://forum.mods.de' + url
+            if url.startswith('./'):
+                url = 'http://forum.mods.de/bb/' + url[2:]
             if '://' not in url:
                 url = 'http://' + url
         try:

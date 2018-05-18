@@ -4,7 +4,7 @@ from sqlalchemy import func, cast, Float, desc
 from sqlalchemy.orm import with_expression
 
 from .db import User, Board, Thread, Post
-from .db import QuoteRelation
+from .db import QuoteRelation, LinkRelation
 
 
 def apply_year_filter(query, year=None):
@@ -163,3 +163,16 @@ def social_graph(session):
         .order_by(desc(QuoteRelation.count))
     )
     return query
+
+
+def user_domains(session):
+    return session.query(LinkRelation).order_by(desc(LinkRelation.count))
+
+
+def domains(session):
+    return (
+        session
+        .query(func.sum(LinkRelation.count).label('count'), LinkRelation.domain)
+        .group_by(LinkRelation.domain)
+        .order_by(desc('count'))
+    )

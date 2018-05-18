@@ -115,6 +115,32 @@ def social_graph():
     return json_response({'rows': rows})
 
 
+@app.route('/api/user-domains')
+@cache_api_view
+def user_domains():
+    session = get_session()
+    limit = request_arg('limit', int, default=1000)
+    rows = []
+    for relation in dal.user_domains(session).limit(limit).all():
+        rows.append({
+            'user': relation.user,
+            'domain': relation.domain,
+            'count': relation.count,
+        })
+    return json_response({'rows': rows})
+
+
+@app.route('/api/domains')
+@cache_api_view
+def domains():
+    session = get_session()
+    limit = request_arg('limit', int, default=1000)
+    rows = []
+    for row in dal.domains(session).limit(limit).all():
+        rows.append(row._asdict())
+    return json_response({'rows': rows})
+
+
 @app.route('/api/poster-stats')
 @cache_api_view
 def poster_stats():

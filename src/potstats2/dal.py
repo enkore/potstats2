@@ -165,7 +165,7 @@ def social_graph(session):
     return query
 
 
-def user_domains(session, year=None):
+def user_domains(session, year=None, link_type=None):
     query = (
         session
         .query(User, LinkRelation.domain, func.sum(LinkRelation.count).label('count'))
@@ -175,10 +175,12 @@ def user_domains(session, year=None):
     )
     if year:
         query = query.filter(LinkRelation.year == year)
+    if link_type:
+        query = query.filter(LinkRelation.type == link_type)
     return query
 
 
-def domains(session, year=None):
+def domains(session, year=None, link_type=None):
     query = (
         session
         .query(func.sum(LinkRelation.count).label('count'), LinkRelation.domain)
@@ -187,4 +189,6 @@ def domains(session, year=None):
     )
     if year:
         query = query.filter(LinkRelation.year == year)
+    if link_type:
+        query = query.filter(LinkRelation.type == link_type)
     return query

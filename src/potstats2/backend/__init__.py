@@ -4,7 +4,7 @@ import json
 from flask import Flask, request, Response, url_for, g
 from sqlalchemy import func, desc
 
-from ..db import Post, User
+from ..db import Post, User, LinkType
 from .. import db, dal, config
 from .cache import cache_api_view
 
@@ -115,14 +115,25 @@ def social_graph():
     return json_response({'rows': rows})
 
 
+def request_link_type():
+    name = request_arg('type', str, default=None)
+    if not name:
+        return None
+    try:
+        return LinkType[name]
+    except KeyError:
+        raise APIError('Invalid link type %r (choose from %s)' % (name, list(LinkType.__members__)))
+
+
 @app.route('/api/user-domains')
 @cache_api_view
 def user_domains():
     session = get_session()
     limit = request_arg('limit', int, default=1000)
     year = request_arg('year', int, default=None)
+    link_type = request_link_type()
     rows = []
-    for row in dal.user_domains(session, year).limit(limit).all():
+    for row in dal.user_domains(session, year, link_type).limit(limit).all():
         rows.append(row._asdict())
     return json_response({'rows': rows})
 
@@ -133,8 +144,9 @@ def domains():
     session = get_session()
     limit = request_arg('limit', int, default=1000)
     year = request_arg('year', int, default=None)
+    link_type = request_link_type()
     rows = []
-    for row in dal.domains(session, year).limit(limit).all():
+    for row in dal.domains(session, year, link_type).limit(limit).all():
         rows.append(row._asdict())
     return json_response({'rows': rows})
 

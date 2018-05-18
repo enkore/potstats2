@@ -72,6 +72,7 @@ def observe_request_finished(sender, response, **extra):
     except KeyError:
         return
     stats_db.incr('%s_responses_%d' % (view.__name__, response.status_code))
+    stats_db.incr('%s_responses_size' % view.__name__, len(response.get_data()))
 
 
 if stats_db:

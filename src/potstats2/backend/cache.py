@@ -4,10 +4,11 @@ import hashlib
 
 try:
     import redis
+    import blinker
 except ImportError:
     redis = None
 
-from flask import Request, Response, request, request_started, request_finished, current_app
+from flask import Request, Response, request, current_app
 
 import potstats2
 from .. import config
@@ -18,7 +19,7 @@ if redis_url and redis:
     cache_db = redis.StrictRedis.from_url(redis_url, db=0)
     stats_db = redis.StrictRedis.from_url(redis_url, db=1)
 elif redis_url:
-    print('redis-py (pip install redis) not installed - can\'t use caching.')
+    print('redis-py or blinker (pip install redis blinker) not installed - can\'t use caching.')
     cache_db = stats_db = None
 else:
     print('API request caching disabled.')
@@ -74,6 +75,7 @@ def observe_request_finished(sender, response, **extra):
 
 
 if stats_db:
+    from flask import request_started, request_finished
     request_started.connect(observe_request_started)
     request_finished.connect(observe_request_finished)
 

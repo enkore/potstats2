@@ -18,7 +18,7 @@ from .util import ElapsedProgressBar, chunk_query
 def get_engine():
     db_url = config.get('DB')
     print('Database URL:', db_url, file=sys.stderr)
-    return create_engine(db_url)
+    return create_engine(db_url, use_batch_mode=True)
 
 
 _global_session = None

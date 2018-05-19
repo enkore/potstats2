@@ -1,11 +1,12 @@
 postats2
 ========
 
-A classic three-zoo enterprise architecture:
+A classic four-zoo enterprise architecture:
 
 - Backoffice: The worldeater populates the database via the XML API
 - Backend: A JSON-API-to-RDBMS connector
 - Frontend: Need that one too :D
+- Business Intelligence: potstats2-analytics compiles secondary intelligence files from the primary database
 
 Le Stack
 

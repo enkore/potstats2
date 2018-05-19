@@ -1,6 +1,7 @@
 import marshal
 import functools
 import hashlib
+import gzip
 
 try:
     import redis
@@ -44,16 +45,37 @@ def cache_api_view(view):
     def cache_frontend(*args, **kwargs):
         key = cache_key(view, args, kwargs, request)
         cached = cache_db.get(key)
+        ua_does_gzip = 'gzip' in request.headers.get('Accept-Encoding', '').lower()
         if not cached:
             response = view(*args, **kwargs)
             if response.status_code == 200 and response.mimetype == 'application/json':
+                data = response.get_data(as_text=False)
+                compressed_data = gzip.compress(data, 5)
+
+                cache_db.set(key, compressed_data)
                 # It's only an actual miss if we are able to cache the response
                 stats_db.incr(view.__name__ + '_cache_miss')
-                cache_db.set(key, response.get_data(as_text=False))
+                stats_db.incr(view.__name__ + '_cache_size', len(data))
+                stats_db.incr(view.__name__ + '_cache_size_gzipped', len(compressed_data))
+
+                if ua_does_gzip:
+                    response.set_data(compressed_data)
+                    response.headers['Content-Encoding'] = 'gzip'
+                    response.headers['Content-Length'] = response.content_length
+                    response.headers['Vary'] = 'Accept-Encoding'
             return response
         else:
             stats_db.incr(view.__name__ + '_cache_hits')
-            return Response(cached, status=200, mimetype='application/json')
+            response = Response(status=200, mimetype='application/json')
+            if ua_does_gzip:
+                response.set_data(cached)
+                response.headers['Content-Encoding'] = 'gzip'
+                response.headers['Content-Length'] = response.content_length
+                response.headers['Vary'] = 'Accept-Encoding'
+            else:
+                response.set_data(gzip.decompress(cached))
+                response.headers['Content-Length'] = response.content_length
+            return response
     return cache_frontend
 
 

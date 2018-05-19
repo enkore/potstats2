@@ -51,8 +51,9 @@ def analytics():
 
     num_posts = session.query(Post).count()
     with ElapsedProgressBar(length=num_posts, label='Analyzing posts') as bar:
+        pid_to_poster_uid = dict(session.query(Post.pid, Post.poster_uid))
         for post in chunk_query(session.query(Post), Post.pid, chunk_size=10000):
-            analyze_post(session, post)
+            analyze_post(session, post, pid_to_poster_uid)
             bar.update(1)
     print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s),\n'
           'discovering {} quote relationships and {} quotes.'
@@ -74,7 +75,7 @@ def analyze_post_links(session):
           .format(session.query(PostLinks).count(), session.query(LinkRelation).count(), elapsed))
 
 
-def analyze_post(session, post):
+def analyze_post(session, post, pid_to_poster_uid):
     in_tag = False
     capture_contents = False
     current_tag = ''
@@ -93,8 +94,8 @@ def analyze_post(session, post):
             return
 
         try:
-            quotee_uid = session.query(Post).get(pid).poster_uid
-        except AttributeError:
+            quotee_uid = pid_to_poster_uid[pid]
+        except KeyError:
             print('PID %d: Quoted PID not on record: %d' % (post.pid, pid))
             return
 

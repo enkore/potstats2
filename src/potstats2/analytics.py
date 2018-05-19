@@ -34,7 +34,7 @@ def main():
         urls = []
         n = 0
 
-        for post in chunk_query(session.query(Post), Post.pid, chunk_size=10000):
+        for post in chunk_query(session.query(Post.pid, Post.content, Post.poster_uid), Post.pid, chunk_size=10000):
             analyze_post(post, pid_to_poster_uid, edges, urls)
             n += 1
 

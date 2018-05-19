@@ -43,4 +43,4 @@ def chunk_query(query, primary_key, chunk_size=1000):
             yield row
         if row is None:
             break
-        last_id = primary_key.__get__(row, primary_key) if row else None
+        last_id = getattr(row, primary_key.name) if row else None

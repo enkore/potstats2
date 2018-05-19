@@ -49,12 +49,40 @@ def analytics():
     session.query(QuoteRelation).delete()
     session.query(PostLinks).delete()
 
+    edge_insert_stmt = insert(QuoteRelation.__table__)
+    edge_insert_stmt = edge_insert_stmt.on_conflict_do_update(
+        index_elements=QuoteRelation.__table__.primary_key.columns,
+        set_=dict(count=edge_insert_stmt.excluded.count + QuoteRelation.__table__.c.count)
+    )
+
+    url_insert_stmt = insert(PostLinks.__table__)
+    url_insert_stmt = url_insert_stmt.on_conflict_do_update(
+        index_elements=PostLinks.__table__.primary_key.columns,
+        set_=dict(count=url_insert_stmt.excluded.count + PostLinks.__table__.c.count)
+    )
+
     num_posts = session.query(Post).count()
     with ElapsedProgressBar(length=num_posts, label='Analyzing posts') as bar:
         pid_to_poster_uid = dict(session.query(Post.pid, Post.poster_uid))
+        edges = []
+        urls = []
+
         for post in chunk_query(session.query(Post), Post.pid, chunk_size=10000):
-            analyze_post(session, post, pid_to_poster_uid)
+            analyze_post(post, pid_to_poster_uid, edges, urls)
             bar.update(1)
+
+            if len(edges) > 1000:
+                session.execute(edge_insert_stmt, edges)
+                edges.clear()
+            if len(urls) > 1000:
+                session.execute(url_insert_stmt, urls)
+                urls.clear()
+
+        session.execute(edge_insert_stmt, edges)
+        session.execute(url_insert_stmt, urls)
+        edges.clear()
+        urls.clear()
+
     print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s),\n'
           'discovering {} quote relationships and {} quotes.'
           .format(num_posts, bar.elapsed, num_posts / bar.elapsed,
@@ -75,7 +103,7 @@ def analyze_post_links(session):
           .format(session.query(PostLinks).count(), session.query(LinkRelation).count(), elapsed))
 
 
-def analyze_post(session, post, pid_to_poster_uid):
+def analyze_post(post, pid_to_poster_uid, edges, urls):
     in_tag = False
     capture_contents = False
     current_tag = ''
@@ -99,12 +127,7 @@ def analyze_post(session, post, pid_to_poster_uid):
             print('PID %d: Quoted PID not on record: %d' % (post.pid, pid))
             return
 
-        stmt = insert(QuoteRelation.__table__).values(quoter_uid=poster_uid, quotee_uid=quotee_uid, count=1)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=QuoteRelation.__table__.primary_key.columns,
-            set_=dict(count=stmt.excluded.count + QuoteRelation.__table__.c.count)
-        )
-        session.execute(stmt)
+        edges.append(dict(quoter_uid=poster_uid, quotee_uid=quotee_uid, count=1))
 
     def update_url(url, link_type, post):
         if url:
@@ -122,12 +145,7 @@ def analyze_post(session, post, pid_to_poster_uid):
             print('PID %d: Could not parse URL: %r' % (post.pid, url))
             return
 
-        stmt = insert(PostLinks.__table__).values(pid=post.pid, url=url, domain=domain, count=1, type=link_type)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=PostLinks.__table__.primary_key.columns,
-            set_=dict(count=stmt.excluded.count + PostLinks.__table__.c.count)
-        )
-        session.execute(stmt)
+        urls.append(dict(pid=post.pid, url=url, domain=domain, count=1, type=link_type))
 
     if not post.content:
         return

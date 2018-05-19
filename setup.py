@@ -22,6 +22,10 @@ setup(
         'test': [
             'pytest',
         ],
+        'cache': [
+            'redis',
+            'blinker'
+        ],
     },
 
     description='potstats2',

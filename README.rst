@@ -14,7 +14,8 @@ Le Stack
 - Database connector: sqlalchemy/psycopg2
 - HTTP adapter: flask
 
-Public instance lives at http://potstats2.enkore.de/api (no TLS yet, because that would show up in public CT logs).
+Public instance lives at http://potstats2.enkore.de/api/ (no TLS yet, because that would show up in public CT logs).
+That instance has GET-CORS enabled (for now) and thus the API can be used from other origins.
 
 Setup
 -----
@@ -37,28 +38,32 @@ Setup
     . _venv/bin/activate
     pip install [-e,--editable] .
 
-3. Configuration (src/potstats2/config.py):
-
-   - Optional config file (``~/.config/potstats2.ini``)::
-
-      [potstats2]
-      # See https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
-      db = postgresql://scott:tiger@localhost/mydatabase
-
-   - Environment variables override config file::
-
-      # No post-mortem debugger
-      export POTSTATS2_DEBUG=0
-
-4. Create DB schema (probably use alembic later)::
+3. Create DB schema (probably use alembic later)::
 
     potstats2-db create_schema
 
-5. Load database dump or run crawler (currently runs against some random subforum no one ever cared about, so this should take all but a minute)::
+4. Load database dump or run crawler (currently runs against some random subforum no one ever cared about, so this should take all but a minute)::
 
 -  Database dump: Fetch https://pstore.enkore.de/dump-2018-05-16-200%7E54159332c65cf2b3728775b9601580fa65fa9b41a2c5e5bcd85a5936552fadbe%7E.sql.gz
    and run ``gunzip dump...sql.gz | psql potstats2``.
 -  Crawler: potstats2-worldeater
+
+Configuration (src/potstats2/config.py)
++++++++++++++++++++++++++++++++++++++++
+
+- Optional config file (``~/.config/potstats2.ini``)::
+
+   [potstats2]
+   # See https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
+   db = postgresql://scott:tiger@localhost/mydatabase
+
+   [flask]
+   some_flask_setting = 1234
+
+- Environment variables override config file::
+
+   # No post-mortem debugger
+   export POTSTATS2_DEBUG=0
 
 Error handling
 ++++++++++++++
@@ -94,13 +99,16 @@ Run ``potstats2-backend-dev`` for the usual Flask dev server.
 
 Try http://127.0.0.1:5000/api/poster-stats?year=2003
 
-API caching
-+++++++++++
+Optional API caching
+++++++++++++++++++++
 
-Redis can be used to cache API requests. You likely want to read https://redis.io/topics/lru-cache
-for properly configuring it, though.
+Redis can be used to cache API requests. Since there is no time-based expiry, setting
+a memory limit and an eviction policy as per https://redis.io/topics/lru-cache is recommended.
+The ``redis`` and ``blinker`` packages are required to use that functionality (``pip install redis blinker``
+or ``pip install <this package>[cache]``, i.e. ``pip install .[cache]``).
 
-After setting redis up, simply set REDIS_URL. The cache is automatically invalidated by
+After setting redis up, simply set REDIS_URL (for a local installation this would usually be ``redis://127.0.0.1:6379``).
+The cache is automatically invalidated by
 
 - running database analytics,
 - running worldeater,

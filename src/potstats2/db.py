@@ -66,10 +66,15 @@ def analytics():
         pid_to_poster_uid = dict(session.query(Post.pid, Post.poster_uid))
         edges = []
         urls = []
+        n = 0
 
         for post in chunk_query(session.query(Post), Post.pid, chunk_size=10000):
             analyze_post(post, pid_to_poster_uid, edges, urls)
-            bar.update(1)
+            n += 1
+
+            if n > 2000:
+                bar.update(n)
+                n = 0
 
             if len(edges) > 1000:
                 session.execute(edge_insert_stmt, edges)

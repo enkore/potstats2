@@ -221,43 +221,6 @@ class PostQuotes(Base):
     quoted_post = relationship('Post', foreign_keys=quoted_pid)
 
 
-quoter = aliased(User, name='quoter')
-quotee = aliased(User, name='quotee')
-quoted_post = aliased(Post, name='quoted_post')
-agg_count = func.sum(PostQuotes.count).label('count')
-
-func.extract('year', Post.timestamp)
-
-
-qrq = (
-    Query((quoter.uid.label('quoter_uid'),
-           quotee.uid.label('quotee_uid'),
-           func.extract('year', Post.timestamp).label('year'), agg_count))
-    .join(Post, PostQuotes.post)
-    .join(quoted_post, PostQuotes.quoted_post)
-    .join(quoter, Post.poster)
-    .join(quotee, quoted_post.poster)
-    .group_by(quoter.uid, quotee.uid, 'year')
-)
-
-
-class QuoteRelation(PseudoMaterializedView):
-    __tablename__ = 'quote_relation'
-
-    quoter_uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
-    quotee_uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
-    year = Column(Integer, primary_key=True)
-
-    quoter = relationship('User', foreign_keys=quoter_uid)
-    quotee = relationship('User', foreign_keys=quotee_uid)
-
-    count = Column(Integer, default=0)
-    # A number between 0...1 where 1 is the most intense relation.
-    intensity = query_expression()
-
-    query = qrq
-
-
 class LinkType(enum.Enum):
     link = 1
     image = 2

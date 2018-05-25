@@ -5,7 +5,7 @@ import click
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 
-from .db import get_session, Post, PostLinks, PostQuotes, QuoteRelation, LinkRelation, LinkType
+from .db import get_session, Post, PostLinks, PostQuotes, LinkRelation, LinkType
 from .util import ElapsedProgressBar, chunk_query
 
 
@@ -59,7 +59,6 @@ def main():
     print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(num_posts, bar.elapsed, num_posts / bar.elapsed))
 
     aggregate_post_links(session)
-    aggregate_quotes(session)
 
     session.commit()
     from .backend import cache
@@ -72,14 +71,6 @@ def aggregate_post_links(session):
     elapsed = perf_counter() - t0
     print('Aggregated {} links into {} link relationships in {:.1f} s.'
           .format(session.query(PostLinks).count(), session.query(LinkRelation).count(), elapsed))
-
-
-def aggregate_quotes(session):
-    t0 = perf_counter()
-    QuoteRelation.refresh(session)
-    elapsed = perf_counter() - t0
-    print('Aggregated {} quotes into {} quote relationships in {:.1f} s.'
-          .format(session.query(PostQuotes).count(), session.query(QuoteRelation).count(), elapsed))
 
 
 def analyze_post(post, pids, quotes, urls):

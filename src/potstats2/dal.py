@@ -4,7 +4,8 @@ from sqlalchemy import func, cast, Float, desc
 from sqlalchemy.orm import with_expression, aliased
 
 from .db import User, Board, Thread, Post
-from .db import QuoteRelation, LinkRelation
+from .db import PostQuotes
+from .db import LinkRelation
 
 
 def apply_year_filter(query, year=None):
@@ -155,25 +156,28 @@ def social_graph(session, year=None):
 
     The row type is QuoteRelation.
     """
-    def filter_year(query):
-        if year:
-            return query.filter(QuoteRelation.year == year)
-        return query
 
-    actual_count = func.sum(QuoteRelation.count).label('count')
     quoter = aliased(User, name='quoter')
     quotee = aliased(User, name='quotee')
-    query = filter_year(
+    quoted_post = aliased(Post, name='quoted_post')
+
+    count = func.sum(PostQuotes.count).label('count')
+
+    query = apply_year_filter(
         session
-        .query(quoter, quotee, actual_count)
-        .join(quoter, QuoteRelation.quoter)
-        .join(quotee, QuoteRelation.quotee)
-        .order_by(desc('count'))
-        .group_by(quoter, quotee)
+        .query(quoter, quotee, count)
+        .join(Post, PostQuotes.post)
+        .join(quoted_post, PostQuotes.quoted_post)
+        .join(quoter, Post.poster)
+        .join(quotee, quoted_post.poster)
+        .group_by(quoter.uid, quotee.uid)
+        .order_by(desc(count))
+        , year
     )
+
     # maximum_count = 0 <=> main query has empty result set - no division by zero happens.
-    maximum_count = query.from_self(func.max(actual_count)).one()[0] or 0
-    query = query.add_columns((actual_count / float(maximum_count)).label('intensity'))
+    maximum_count = query.from_self(func.max(count)).one()[0] or 0
+    query = query.add_columns((count / float(maximum_count)).label('intensity'))
     return query
 
 

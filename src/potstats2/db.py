@@ -40,6 +40,15 @@ def create_schema():
     Base.metadata.create_all(engine)
 
 
+@main.command()
+def shell():
+    import code
+    locals = dict(session=get_session())
+    locals.update(globals())
+    code.interact(local=locals, banner='>>> session=get_session()\n'
+                                       '>>> from potstats2.db import *', exitmsg='')
+
+
 Base = declarative_base()
 
 

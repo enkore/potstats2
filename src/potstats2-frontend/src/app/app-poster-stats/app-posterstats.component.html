@@ -1,0 +1,43 @@
+<div class="mat-elevation-z8">
+  <mat-table #table [dataSource]="dataSource" matSort aria-label="Elements">
+
+    <ng-container matColumnDef="name">
+      <mat-header-cell *matHeaderCellDef mat-sort-header>Name</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.User.name}}</mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="post_count">
+      <mat-header-cell *matHeaderCellDef mat-sort-header>Posts</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.post_count}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="edit_count">
+      <mat-header-cell *matHeaderCellDef mat-sort-header>Edits</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.edit_count}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="avg_post_length">
+      <mat-header-cell *matHeaderCellDef mat-sort-header>Durchschnittliche Post Länge</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.avg_post_length}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="threads_created">
+      <mat-header-cell *matHeaderCellDef mat-sort-header>Threads erstellt</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.threads_created}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="quoted_count">
+      <mat-header-cell *matHeaderCellDef mat-sort-header>Zitiert</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.quoted_count}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="quotes_count">
+      <mat-header-cell *matHeaderCellDef mat-sort-header>Zitate</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.quotes_count}}</mat-cell>
+    </ng-container>
+    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+    <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+  </mat-table>
+
+  <mat-paginator #paginator
+    [length]="dataSource.data.length"
+    [pageIndex]="0"
+    [pageSize]="50"
+    [pageSizeOptions]="[25, 50, 100, 250]">
+  </mat-paginator>
+</div>

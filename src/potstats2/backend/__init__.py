@@ -187,13 +187,7 @@ def poster_stats():
 
     rows = []
     for r in query.all():
-        rows.append({
-            'user': {'name': r.User.name, 'uid': r.User.uid},
-            'post_count': r.post_count,
-            'edit_count': r.edit_count,
-            'avg_post_length': r.avg_post_length,
-            'threads_created': r.threads_created
-        })
+        rows.append(r._asdict())
 
     return json_response({'rows': rows})
 

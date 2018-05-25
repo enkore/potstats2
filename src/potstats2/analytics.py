@@ -5,20 +5,20 @@ import click
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 
-from .db import get_session, Post, PostLinks, QuoteRelation, LinkRelation, LinkType
+from .db import get_session, Post, PostLinks, PostQuotes, QuoteRelation, LinkRelation, LinkType
 from .util import ElapsedProgressBar, chunk_query
 
 
 @click.command()
 def main():
     session = get_session()
-    session.query(QuoteRelation).delete()
+    session.query(PostQuotes).delete()
     session.query(PostLinks).delete()
 
-    edge_insert_stmt = insert(QuoteRelation.__table__)
-    edge_insert_stmt = edge_insert_stmt.on_conflict_do_update(
-        index_elements=QuoteRelation.__table__.primary_key.columns,
-        set_=dict(count=edge_insert_stmt.excluded.count + QuoteRelation.__table__.c.count)
+    quote_insert_stmt = insert(PostQuotes.__table__)
+    quote_insert_stmt = quote_insert_stmt.on_conflict_do_update(
+        index_elements=PostQuotes.__table__.primary_key.columns,
+        set_=dict(count=quote_insert_stmt.excluded.count + PostQuotes.__table__.c.count)
     )
 
     url_insert_stmt = insert(PostLinks.__table__)
@@ -29,44 +29,44 @@ def main():
 
     num_posts = session.query(Post).count()
     with ElapsedProgressBar(length=num_posts, label='Analyzing posts') as bar:
-        pid_to_poster_uid = dict(session.query(Post.pid, Post.poster_uid))
-        edges = []
+        pids = set([n for n, in session.query(Post.pid)])
+        quotes = []
         urls = []
         n = 0
 
         for post in chunk_query(session.query(Post.pid, Post.content, Post.poster_uid, Post.timestamp), Post.pid, chunk_size=10000):
-            analyze_post(post, pid_to_poster_uid, edges, urls)
+            analyze_post(post, pids, quotes, urls)
             n += 1
 
             if n > 2000:
                 bar.update(n)
                 n = 0
 
-            if len(edges) > 1000:
-                session.execute(edge_insert_stmt, edges)
-                edges.clear()
+            if len(quotes) > 1000:
+                session.execute(quote_insert_stmt, quotes)
+                quotes.clear()
             if len(urls) > 1000:
                 session.execute(url_insert_stmt, urls)
                 urls.clear()
 
-        session.execute(edge_insert_stmt, edges)
-        session.execute(url_insert_stmt, urls)
-        edges.clear()
+        if quotes:
+            session.execute(quote_insert_stmt, quotes)
+        if urls:
+            session.execute(url_insert_stmt, urls)
+        quotes.clear()
         urls.clear()
 
-    print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s),\n'
-          'discovering {} quote relationships and {} quotes.'
-          .format(num_posts, bar.elapsed, num_posts / bar.elapsed,
-                  session.query(QuoteRelation).count(), session.query(func.sum(QuoteRelation.count)).one()))
+    print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(num_posts, bar.elapsed, num_posts / bar.elapsed))
 
-    analyze_post_links(session)
+    aggregate_post_links(session)
+    aggregate_quotes(session)
 
     session.commit()
     from .backend import cache
     cache.invalidate()
 
 
-def analyze_post_links(session):
+def aggregate_post_links(session):
     t0 = perf_counter()
     LinkRelation.refresh(session)
     elapsed = perf_counter() - t0
@@ -74,14 +74,22 @@ def analyze_post_links(session):
           .format(session.query(PostLinks).count(), session.query(LinkRelation).count(), elapsed))
 
 
-def analyze_post(post, pid_to_poster_uid, edges, urls):
+def aggregate_quotes(session):
+    t0 = perf_counter()
+    QuoteRelation.refresh(session)
+    elapsed = perf_counter() - t0
+    print('Aggregated {} quotes into {} quote relationships in {:.1f} s.'
+          .format(session.query(PostQuotes).count(), session.query(QuoteRelation).count(), elapsed))
+
+
+def analyze_post(post, pids, quotes, urls):
     in_tag = False
     capture_contents = False
     current_tag = ''
     tag_contents = ''
     quote_level = 0
 
-    def update_edge(quote_tag, poster_uid):
+    def update_edge(quote_tag, post):
         try:
             # quote=tid,pid,"user"
             _, _, params = quote_tag.partition('=')
@@ -92,13 +100,11 @@ def analyze_post(post, pid_to_poster_uid, edges, urls):
             print('PID %d: Malformed quote= tag: %r (%s)' % (post.pid, quote_tag, ve))
             return
 
-        try:
-            quotee_uid = pid_to_poster_uid[pid]
-        except KeyError:
+        if pid not in pids:
             print('PID %d: Quoted PID not on record: %d' % (post.pid, pid))
             return
 
-        edges.append(dict(quoter_uid=poster_uid, quotee_uid=quotee_uid, count=1, year=post.timestamp.year))
+        quotes.append(dict(pid=post.pid, quoted_pid=pid, count=1))
 
     def update_url(url, link_type, post):
         if url:
@@ -134,7 +140,7 @@ def analyze_post(post, pid_to_poster_uid, edges, urls):
                 quote_level -= 1
 
             if quote_level == 1 and current_tag.startswith('quote='):
-                update_edge(current_tag, post.poster_uid)
+                update_edge(current_tag, post)
 
             if quote_level == 0:
                 if current_tag.startswith('url='):

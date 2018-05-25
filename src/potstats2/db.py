@@ -3,7 +3,7 @@ import sys
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
     CheckConstraint, func, Enum
-from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression
+from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression, aliased
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert
 
@@ -210,7 +210,38 @@ class WorldeaterState(Base):
         return state
 
 
-class QuoteRelation(Base):
+class PostQuotes(Base):
+    __tablename__ = 'post_quotes'
+
+    pid = Column(Integer, ForeignKey('posts.pid'), primary_key=True)
+    quoted_pid = Column(Integer, ForeignKey('posts.pid'), primary_key=True)
+    count = Column(Integer, default=0)
+
+    post = relationship('Post', foreign_keys=pid)
+    quoted_post = relationship('Post', foreign_keys=quoted_pid)
+
+
+quoter = aliased(User, name='quoter')
+quotee = aliased(User, name='quotee')
+quoted_post = aliased(Post, name='quoted_post')
+agg_count = func.sum(PostQuotes.count).label('count')
+
+func.extract('year', Post.timestamp)
+
+
+qrq = (
+    Query((quoter.uid.label('quoter_uid'),
+           quotee.uid.label('quotee_uid'),
+           func.extract('year', Post.timestamp).label('year'), agg_count))
+    .join(Post, PostQuotes.post)
+    .join(quoted_post, PostQuotes.quoted_post)
+    .join(quoter, Post.poster)
+    .join(quotee, quoted_post.poster)
+    .group_by(quoter.uid, quotee.uid, 'year')
+)
+
+
+class QuoteRelation(PseudoMaterializedView):
     __tablename__ = 'quote_relation'
 
     quoter_uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
@@ -223,6 +254,8 @@ class QuoteRelation(Base):
     count = Column(Integer, default=0)
     # A number between 0...1 where 1 is the most intense relation.
     intensity = query_expression()
+
+    query = qrq
 
 
 class LinkType(enum.Enum):

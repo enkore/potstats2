@@ -34,7 +34,7 @@ def main():
         urls = []
         n = 0
 
-        for post in chunk_query(session.query(Post.pid, Post.content, Post.poster_uid), Post.pid, chunk_size=10000):
+        for post in chunk_query(session.query(Post.pid, Post.content, Post.poster_uid, Post.timestamp), Post.pid, chunk_size=10000):
             analyze_post(post, pid_to_poster_uid, edges, urls)
             n += 1
 
@@ -98,7 +98,7 @@ def analyze_post(post, pid_to_poster_uid, edges, urls):
             print('PID %d: Quoted PID not on record: %d' % (post.pid, pid))
             return
 
-        edges.append(dict(quoter_uid=poster_uid, quotee_uid=quotee_uid, count=1))
+        edges.append(dict(quoter_uid=poster_uid, quotee_uid=quotee_uid, count=1, year=post.timestamp.year))
 
     def update_url(url, link_type, post):
         if url:

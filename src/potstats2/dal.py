@@ -149,14 +149,20 @@ def boards(session):
     return query
 
 
-def social_graph(session):
+def social_graph(session, year=None):
     """
     Retrieve social graph (based on QuoteRelation)
 
     The row type is QuoteRelation.
     """
-    maximum_count, = session.query(func.max(QuoteRelation.count)).one()
-    query = (
+    def filter_year(query):
+        if year:
+            return query.filter(QuoteRelation.year == year)
+        return query
+
+    # maximum_count = 0 <=> main query has empty result set - no division by zero happens.
+    maximum_count = filter_year(session.query(func.max(QuoteRelation.count))).one()[0] or 0
+    query = filter_year(
         session
         .query(QuoteRelation)
         .options(with_expression(QuoteRelation.intensity, QuoteRelation.count / float(maximum_count)))

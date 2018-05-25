@@ -206,6 +206,7 @@ class QuoteRelation(Base):
 
     quoter_uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
     quotee_uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
+    year = Column(Integer, primary_key=True)
 
     quoter = relationship('User', foreign_keys=quoter_uid)
     quotee = relationship('User', foreign_keys=quotee_uid)

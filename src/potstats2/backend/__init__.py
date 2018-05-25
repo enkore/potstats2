@@ -103,8 +103,9 @@ def boards():
 def social_graph():
     session = get_session()
     limit = request_arg('limit', int, default=1000)
+    year = request_arg('year', int, default=None)
     rows = []
-    query = dal.social_graph(session).limit(limit)
+    query = dal.social_graph(session, year).limit(limit)
     for relation in query.all():
         rows.append({
             'from': relation.quoter,

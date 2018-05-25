@@ -176,9 +176,13 @@ def boards(session):
 
 def social_graph(session, year=None):
     """
-    Retrieve social graph (based on QuoteRelation)
+    Retrieve social graph (based on how users quote each other).
 
-    The row type is QuoteRelation.
+    Result columns:
+    User: quoter, User: quotee, count, intensity
+
+    intensity is count relative to the maximum count in the current result
+    (thus, intensity is between zero and one).
     """
 
     quoter = aliased(User, name='quoter')

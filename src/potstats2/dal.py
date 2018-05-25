@@ -160,14 +160,20 @@ def social_graph(session, year=None):
             return query.filter(QuoteRelation.year == year)
         return query
 
-    # maximum_count = 0 <=> main query has empty result set - no division by zero happens.
-    maximum_count = filter_year(session.query(func.max(QuoteRelation.count))).one()[0] or 0
+    actual_count = func.sum(QuoteRelation.count).label('count')
+    quoter = aliased(User, name='quoter')
+    quotee = aliased(User, name='quotee')
     query = filter_year(
         session
-        .query(QuoteRelation)
-        .options(with_expression(QuoteRelation.intensity, QuoteRelation.count / float(maximum_count)))
-        .order_by(desc(QuoteRelation.count))
+        .query(quoter, quotee, actual_count)
+        .join(quoter, QuoteRelation.quoter)
+        .join(quotee, QuoteRelation.quotee)
+        .order_by(desc('count'))
+        .group_by(quoter, quotee)
     )
+    # maximum_count = 0 <=> main query has empty result set - no division by zero happens.
+    maximum_count = query.from_self(func.max(actual_count)).one()[0] or 0
+    query = query.add_columns((actual_count / float(maximum_count)).label('intensity'))
     return query
 
 

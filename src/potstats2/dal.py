@@ -77,6 +77,16 @@ def poster_stats(session, year, bid):
         .join(PostQuotes, PostQuotes.quoted_pid == Post.pid)
     ).group_by(User.uid).subquery()
 
+    quotes_stats = asf(
+        session
+        .query(
+            User.uid,
+            func.count(PostQuotes.count).label('quotes_count'),
+        )
+        .join(Post.poster)
+        .join(PostQuotes, PostQuotes.pid == Post.pid)
+    ).group_by(User.uid).subquery()
+
     query = (
         session
         .query(
@@ -84,9 +94,11 @@ def poster_stats(session, year, bid):
             post_stats,
             func.coalesce(threads_opened.c.threads_created, 0).label('threads_created'),
             func.coalesce(quoted_stats.c.quoted_count, 0).label('quoted_count'),
+            func.coalesce(quotes_stats.c.quotes_count, 0).label('quotes_count'),
         )
         .outerjoin(threads_opened, threads_opened.c.uid == User.uid)
         .outerjoin(quoted_stats, quoted_stats.c.uid == User.uid)
+        .outerjoin(quotes_stats, quotes_stats.c.uid == User.uid)
         .join(post_stats, post_stats.c.uid == User.uid)
     )
 

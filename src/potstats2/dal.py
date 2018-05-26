@@ -144,6 +144,23 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
         .join(Thread.first_post)
         .group_by('time')
     ).subquery()
+    user_sq = asf(
+        session
+        .query(
+            User.uid,
+            time_column_expression.label('time'),
+        )
+        .join(Post.poster)
+        .group_by('time', User.uid)
+    ).subquery()
+    active_users_query = (
+        session.query(
+            func.count(user_sq.c.uid).label('active_users'),
+            user_sq.c.time
+        )
+        .select_from(user_sq)
+        .group_by(user_sq.c.time)
+    ).subquery()
 
     query = (
         session
@@ -151,8 +168,11 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
                # We don't need to COALESCE the post stats,
                # because a created thread implies at least one post.
                func.coalesce(threads_query.c.threads_created, 0).label('threads_created'),
+               'active_users',
                post_query.c.time)
-        .select_from(post_query).outerjoin(threads_query, post_query.c.time == threads_query.c.time, full=True)
+        .select_from(post_query)
+        .outerjoin(threads_query, post_query.c.time == threads_query.c.time, full=True)
+        .outerjoin(active_users_query, post_query.c.time == active_users_query.c.time, full=True)
         .order_by(post_query.c.time)
     )
     return query

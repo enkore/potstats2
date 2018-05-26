@@ -44,6 +44,7 @@ def cache_api_view(view):
     @functools.wraps(view)
     def cache_frontend(*args, **kwargs):
         key = cache_key(view, args, kwargs, request)
+        etag = key[:32]
         cached = cache_db.get(key)
         ua_does_gzip = 'gzip' in request.headers.get('Accept-Encoding', '').lower()
         if not cached:
@@ -63,8 +64,11 @@ def cache_api_view(view):
                     response.headers['Content-Encoding'] = 'gzip'
                     response.headers['Content-Length'] = response.content_length
                     response.headers['Vary'] = 'Accept-Encoding'
+                response.headers['ETag'] = etag
             return response
         else:
+            if etag in request.headers.get('If-None-Match', ''):
+                return Response(status=304)
             stats_db.incr(view.__name__ + '_cache_hits')
             response = Response(status=200, mimetype='application/json')
             if ua_does_gzip:
@@ -75,6 +79,7 @@ def cache_api_view(view):
             else:
                 response.set_data(gzip.decompress(cached))
                 response.headers['Content-Length'] = response.content_length
+            response.headers['ETag'] = etag
             return response
     return cache_frontend
 

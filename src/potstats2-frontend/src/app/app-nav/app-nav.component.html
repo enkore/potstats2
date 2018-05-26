@@ -7,6 +7,12 @@
     [mode]="(isHandset$ | async) ? 'over' : 'side'"
     [opened]="!(isHandset$ | async)">
     <mat-toolbar color="primary">Menu</mat-toolbar>
+    <mat-form-field>
+      <mat-select #yearSelect (selectionChange)="setYear($event)" [(value)]="selectedYear" placeholder="Jahr">
+        <mat-option>Alle</mat-option>
+        <mat-option *ngFor="let year of years" [value]="year">{{ year }}</mat-option>
+      </mat-select>
+    </mat-form-field>
     <mat-nav-list>
       <a mat-list-item routerLink="/userstats">User Stats</a>
       <a mat-list-item routerLink="/impress">Impressum</a>

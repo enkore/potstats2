@@ -4,8 +4,10 @@ import { NgModule } from '@angular/core';
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { LayoutModule } from '@angular/cdk/layout';
-import { MatToolbarModule, MatButtonModule, MatSidenavModule, MatIconModule,
-  MatListModule, MatTableModule, MatPaginatorModule, MatSortModule } from '@angular/material';
+import {
+  MatToolbarModule, MatButtonModule, MatSidenavModule, MatIconModule,
+  MatListModule, MatTableModule, MatPaginatorModule, MatSortModule, MatSelectModule
+} from '@angular/material';
 import { AppNavComponent } from './app-nav/app-nav.component';
 import { ImpressComponent } from './impress/impress.component';
 import { PrivacyComponent } from './privacy/privacy.component';
@@ -36,6 +38,7 @@ const routes: Routes = [
     MatSidenavModule,
     MatIconModule,
     MatListModule,
+    MatSelectModule,
     RouterModule.forRoot(routes),
     MatTableModule,
     MatPaginatorModule,

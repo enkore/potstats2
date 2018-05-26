@@ -4,6 +4,8 @@ import { map } from 'rxjs/operators';
 import { Observable, merge } from 'rxjs';
 import {PosterStats} from '../data/types';
 import {PosterStatsService} from '../data/poster-stats.service';
+import {YearStateService} from "../year-state.service";
+import {Subject} from "rxjs/internal/Subject";
 
 /**
  * Data source for the AppUserstats view. This class should
@@ -13,7 +15,8 @@ import {PosterStatsService} from '../data/poster-stats.service';
 export class AppPosterstatsDataSource extends DataSource<PosterStats> {
 
   data: PosterStats[] = [];
-  constructor(private posterstatsService: PosterStatsService, private paginator: MatPaginator, private sort: MatSort) {
+  constructor(private posterstatsService: PosterStatsService, private yearState: YearStateService,
+              private paginator: MatPaginator, private sort: MatSort) {
     super();
   }
 
@@ -23,20 +26,26 @@ export class AppPosterstatsDataSource extends DataSource<PosterStats> {
    * @returns A stream of the items to be rendered.
    */
   connect(): Observable<PosterStats[]> {
-    const response = this.posterstatsService.execute();
+    const dataSubject: Subject<boolean> = new Subject();
+    this.yearState.yearSubject.subscribe(year => {
+        this.posterstatsService.execute(year).subscribe(data => {
+            this.data = data;
+            dataSubject.next(true);
+          }
+        )
+      }
+    );
+
     // Combine everything that affects the rendered data into one update
     // stream for the data-table to consume.
     const dataMutations = [
-      response,
+      dataSubject,
       this.paginator.page,
       this.sort.sortChange
     ];
 
-    return merge(...dataMutations).pipe(map((value, index) => {
-      if (index === 0) {
-        this.data = value;
-        this.paginator.length = this.data.length;
-      }
+    return merge(...dataMutations).pipe(map(() => {
+      this.paginator.length = this.data.length;
       return this.getPagedData(this.getSortedData([...this.data]));
     }));
   }

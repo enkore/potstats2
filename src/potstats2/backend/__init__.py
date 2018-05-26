@@ -189,9 +189,6 @@ def poster_stats():
     except KeyError:
         raise APIError('Invalid order_by: %s' % order)
 
-    # Have to use offset, because we don't order by any unique, orderable column.
-    # {Finding a way to adapt the pk-index method to pagination to our situation would be great,
-    #  since most queries do not satisfy the simple criterion above.}
     query = dal.poster_stats(session, year, bid).order_by(order_by, User.uid)
 
     if following_ob and following_uid:

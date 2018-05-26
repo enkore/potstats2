@@ -1,0 +1,19 @@
+<div class="mat-elevation-z8">
+  <mat-table #table [dataSource]="dataSource" matSort aria-label="Elements">
+
+    <ng-container matColumnDef="name">
+      <mat-header-cell *matHeaderCellDef>Name</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.name}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="post_count">
+      <mat-header-cell *matHeaderCellDef>Posts</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.post_count}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="thread_count">
+      <mat-header-cell *matHeaderCellDef>Threads</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.thread_count}}</mat-cell>
+    </ng-container>
+    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+    <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+  </mat-table>
+</div>

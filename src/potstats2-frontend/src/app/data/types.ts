@@ -3,6 +3,14 @@ export interface User {
   uid: number;
 }
 
+export interface BoardStats {
+  name: string,
+  bid: number,
+  description: string,
+  thread_count: number,
+  post_count: number
+}
+
 export interface PosterStats {
   User: User;
   uid: number;

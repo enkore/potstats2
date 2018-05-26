@@ -191,12 +191,12 @@ def poster_stats():
 
     query = dal.poster_stats(session, year, bid).order_by(order_by, User.uid)
 
-    if following_ob and following_uid:
+    if following_ob is not None and following_uid is not None:
         if order == 'asc':
             query = query.filter(tuple_(column(order_by_column), User.uid) > tuple_(following_ob, following_uid))
         else:
             query = query.filter(tuple_(column(order_by_column), User.uid) < tuple_(following_ob, following_uid))
-    elif following_ob or following_uid:
+    elif (following_ob is None or following_uid is None) and (following_ob is not None or following_uid is not None):
         raise APIError('Need to specify either both or none of following_uid, following_ob.')
 
     query = query.limit(limit)

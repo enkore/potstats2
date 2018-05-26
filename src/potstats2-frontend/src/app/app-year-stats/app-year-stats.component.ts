@@ -1,6 +1,7 @@
 import { Component, OnInit} from '@angular/core';
 import {YearStatsService} from "../data/year-stats.service";
 import {AppYearStatsDataSource} from "./app-year-stats-data-source";
+import {GlobalFilterStateService} from "../global-filter-state.service";
 
 @Component({
   selector: 'app-year-stats',
@@ -12,9 +13,9 @@ export class AppYearStatsComponent implements OnInit {
 
   displayedColumns = ['year', 'post_count', 'edit_count', 'avg_post_length', 'threads_created'];
 
-  constructor(private service: YearStatsService) {}
+  constructor(private service: YearStatsService, private stateService: GlobalFilterStateService) {}
   ngOnInit() {
-    this.dataSource = new AppYearStatsDataSource(this.service);
+    this.dataSource = new AppYearStatsDataSource(this.service, this.stateService);
   }
 
 }

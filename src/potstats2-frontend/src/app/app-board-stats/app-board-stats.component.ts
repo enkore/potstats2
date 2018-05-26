@@ -1,7 +1,7 @@
 import { Component, OnInit} from '@angular/core';
 import {AppBoardStatsDataSource} from "./app-board-stats-data-source";
 import {BoardsService} from "../data/boards.service";
-import {YearStateService} from "../year-state.service";
+import {GlobalFilterStateService} from "../global-filter-state.service";
 
 @Component({
   selector: 'app-board-stats',
@@ -13,7 +13,7 @@ export class AppBoardStatsComponent implements OnInit {
 
   displayedColumns = ['name', 'post_count', 'thread_count'];
 
-  constructor(private service: BoardsService, private yearState: YearStateService) {}
+  constructor(private service: BoardsService, private yearState: GlobalFilterStateService) {}
   ngOnInit() {
     this.dataSource = new AppBoardStatsDataSource(this.service, this.yearState);
   }

@@ -2,7 +2,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { MatSort } from '@angular/material';
 import { AppPosterstatsDataSource } from './app-posterstats-data-source';
 import {PosterStatsService} from '../data/poster-stats.service';
-import {YearStateService} from "../year-state.service";
+import {GlobalFilterStateService} from "../global-filter-state.service";
 import {Subject} from "rxjs/internal/Subject";
 
 @Component({
@@ -17,10 +17,10 @@ export class AppPosterstatsComponent implements OnInit {
   loadMore = new Subject<void>();
   displayedColumns = ['name', 'post_count', 'edit_count', 'avg_post_length', 'threads_created', 'quoted_count', 'quotes_count'];
 
-  constructor(private service: PosterStatsService, private yearState: YearStateService) {}
+  constructor(private service: PosterStatsService, private stateService: GlobalFilterStateService) {}
   ngOnInit() {
     this.dataSource = new AppPosterstatsDataSource(
-      this.service, this.yearState, this.loadMore, this.sort);
+      this.service, this.stateService, this.loadMore, this.sort);
   }
 
   trackByUid(index, item) {

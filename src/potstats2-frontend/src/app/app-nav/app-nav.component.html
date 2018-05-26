@@ -13,6 +13,12 @@
         <mat-option *ngFor="let year of years" [value]="year">{{ year }}</mat-option>
       </mat-select>
     </mat-form-field>
+    <mat-form-field>
+      <mat-select #boardSelect (selectionChange)="setBoard($event)" [(value)]="selectedBoard" placeholder="Board">
+        <mat-option>Alle</mat-option>
+        <mat-option *ngFor="let board of boards | async" [value]="board.bid">{{ board.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
     <mat-nav-list>
 
       <a mat-list-item routerLink="/userstats">User Statistiken</a>

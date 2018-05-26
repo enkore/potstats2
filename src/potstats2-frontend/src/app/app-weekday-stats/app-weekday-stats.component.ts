@@ -1,7 +1,7 @@
 import { Component, OnInit} from '@angular/core';
 import {AppWeekdayStatsDatasource} from "./app-weekday-stats-datasource";
 import {WeekdayStatsService} from "../data/weekday-stats.service";
-import {YearStateService} from "../year-state.service";
+import {GlobalFilterStateService} from "../global-filter-state.service";
 
 @Component({
   selector: 'app-weekday-stats',
@@ -13,9 +13,9 @@ export class AppWeekdayStatsComponent implements OnInit {
 
   displayedColumns = ['weekday', 'post_count', 'edit_count', 'avg_post_length', 'threads_created'];
 
-  constructor(private service: WeekdayStatsService, private yearState: YearStateService) {}
+  constructor(private service: WeekdayStatsService, private stateService: GlobalFilterStateService) {}
   ngOnInit() {
-    this.dataSource = new AppWeekdayStatsDatasource(this.service, this.yearState);
+    this.dataSource = new AppWeekdayStatsDatasource(this.service, this.stateService);
   }
 
 }

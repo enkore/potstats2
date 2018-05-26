@@ -1,3 +1,4 @@
+import collections
 import marshal
 import functools
 import hashlib
@@ -55,9 +56,9 @@ def cache_api_view(view):
 
                 cache_db.set(key, compressed_data)
                 # It's only an actual miss if we are able to cache the response
-                stats_db.incr(view.__name__ + '_cache_miss')
-                stats_db.incr(view.__name__ + '_cache_size', len(data))
-                stats_db.incr(view.__name__ + '_cache_size_gzipped', len(compressed_data))
+                stats_db.incr(view.__name__ + '/cache_miss')
+                stats_db.incr(view.__name__ + '/cache_size', len(data))
+                stats_db.incr(view.__name__ + '/cache_size_gzipped', len(compressed_data))
 
                 if ua_does_gzip:
                     response.set_data(compressed_data)
@@ -69,7 +70,7 @@ def cache_api_view(view):
         else:
             if etag in request.headers.get('If-None-Match', ''):
                 return Response(status=304)
-            stats_db.incr(view.__name__ + '_cache_hits')
+            stats_db.incr(view.__name__ + '/cache_hits')
             response = Response(status=200, mimetype='application/json')
             if ua_does_gzip:
                 response.set_data(cached)
@@ -90,7 +91,7 @@ def observe_request_started(sender, **extra):
     except KeyError:
         stats_db.incr('404_hits')
         return
-    stats_db.incr(view.__name__ + '_hits')
+    stats_db.incr(view.__name__ + '/hits')
 
 
 def observe_request_finished(sender, response, **extra):
@@ -98,8 +99,8 @@ def observe_request_finished(sender, response, **extra):
         view = current_app.view_functions[request.endpoint]
     except KeyError:
         return
-    stats_db.incr('%s_responses_%d' % (view.__name__, response.status_code))
-    stats_db.incr('%s_responses_size' % view.__name__, len(response.get_data()))
+    stats_db.incr('%s/responses/%d' % (view.__name__, response.status_code))
+    stats_db.incr('%s/responses_size' % view.__name__, len(response.get_data()))
 
 
 if stats_db:
@@ -111,3 +112,25 @@ if stats_db:
 def invalidate():
     if cache_db:
         cache_db.flushdb()
+
+
+def get_stats():
+    nested_dict = lambda: collections.defaultdict(nested_dict)
+
+    stats = nested_dict()
+    stats['version'] = potstats2.__version__
+    if stats_db:
+        for key in stats_db.keys('*'):
+            key = key.decode()
+            parts = key.split('/')
+            insert_into = stats
+            for part in parts[:-1]:
+                insert_into = insert_into[part]
+
+            v = stats_db.get(key).decode()
+            try:
+                v = int(v)
+            except ValueError:
+                pass
+            insert_into[parts[-1]] = v
+    return stats

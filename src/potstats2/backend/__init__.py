@@ -6,7 +6,7 @@ from sqlalchemy import func, desc, tuple_, column
 
 from ..db import Post, User, LinkType
 from .. import db, dal, config
-from .cache import cache_api_view
+from .cache import cache_api_view, get_stats
 
 app = Flask(__name__)
 no_default = object()
@@ -81,6 +81,11 @@ def request_arg(argument, type, default=no_default):
 @app.errorhandler(APIError)
 def handle_api_error(error: APIError):
     return error.get_response()
+
+
+@app.route('/api/backend-stats')
+def backend_stats():
+    return json_response(get_stats())
 
 
 @app.route('/api/boards')

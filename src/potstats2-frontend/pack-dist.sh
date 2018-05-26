@@ -1,6 +1,6 @@
 #!/bin/sh -xue
 
-rm -r dist/potstats2-frontend
+rm -rf dist/potstats2-frontend
 ng build --prod
 cd dist/potstats2-frontend
 gzip -9 --keep *.js *.css

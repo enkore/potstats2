@@ -16,11 +16,14 @@ import { AppPosterstatsComponent } from './app-poster-stats/app-posterstats.comp
 import { DataModule } from './data/data.module';
 import {InfiniteScrollModule} from "ngx-infinite-scroll";
 import { AppYearStatsComponent } from './app-year-stats/app-year-stats.component';
+import { AppWeekdayStatsComponent } from './app-weekday-stats/app-weekday-stats.component';
+import { WeekdayPipe } from './weekday.pipe';
 
 
 const routes: Routes = [
   { path: 'userstats', component: AppPosterstatsComponent},
   { path: 'year-to-year-stats', component: AppYearStatsComponent},
+  { path: 'weekday-stats', component: AppWeekdayStatsComponent},
   { path: 'impress', component: ImpressComponent },
   { path: 'privacy', component: PrivacyComponent }
 ];
@@ -32,6 +35,8 @@ const routes: Routes = [
     PrivacyComponent,
     AppPosterstatsComponent,
     AppYearStatsComponent,
+    AppWeekdayStatsComponent,
+    WeekdayPipe,
   ],
   imports: [
     BrowserModule,

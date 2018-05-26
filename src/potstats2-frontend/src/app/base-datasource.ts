@@ -12,7 +12,7 @@ export abstract class BaseDataSource<T> extends DataSource<T> {
   protected sorting: Observable<Sort>;
 
   protected constructor(protected dataLoader: BaseDataService<T>,
-                        private loadMore: Observable<void>, private sort: MatSort = null) {
+                        private loadMore: Observable<void> = null, private sort: MatSort = null) {
     super();
     if (sort !== null) {
       this.sorting = of(this.sort).pipe(concat(<Observable<Sort>>this.sort.sortChange));
@@ -28,15 +28,6 @@ export abstract class BaseDataSource<T> extends DataSource<T> {
    */
   connect(): Observable<T[]> {
     this.connected = true;
-    const infiniteLoader: Observable<T[]> =
-      this.loadMore.pipe(
-        flatMap(() => this.dataLoader.next().pipe(
-          map(data => {
-            this.loadedData.push(...data);
-            return this.loadedData;
-          })
-        ))
-      );
     const freshLoader = this.changedParameters().pipe(
       flatMap(params => this.dataLoader.execute(params)),
       map(data => {
@@ -44,9 +35,24 @@ export abstract class BaseDataSource<T> extends DataSource<T> {
         return data;
       })
     );
-    return merge(infiniteLoader, freshLoader).pipe(
-      takeWhile(() => this.connected),
-    );
+    if (this.loadMore != null) {
+      const infiniteLoader: Observable<T[]> =
+        this.loadMore.pipe(
+          flatMap(() => this.dataLoader.next().pipe(
+            map(data => {
+              this.loadedData.push(...data);
+              return this.loadedData;
+            })
+          ))
+        );
+      return merge(infiniteLoader, freshLoader).pipe(
+        takeWhile(() => this.connected),
+      )
+    } else {
+      return freshLoader.pipe(
+        takeWhile(() => this.connected)
+      );
+    }
   }
 
   /**

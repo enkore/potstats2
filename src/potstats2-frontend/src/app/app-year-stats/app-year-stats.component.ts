@@ -1,5 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
-import {Subject} from "rxjs/internal/Subject";
+import { Component, OnInit} from '@angular/core';
 import {YearStatsService} from "../data/year-stats.service";
 import {AppYearStatsDataSource} from "./app-year-stats-data-source";
 
@@ -10,16 +9,12 @@ import {AppYearStatsDataSource} from "./app-year-stats-data-source";
 })
 export class AppYearStatsComponent implements OnInit {
   dataSource: AppYearStatsDataSource;
-  loadMore = new Subject<void>();
 
   displayedColumns = ['year', 'post_count', 'edit_count', 'avg_post_length', 'threads_created'];
 
   constructor(private service: YearStatsService) {}
   ngOnInit() {
-    this.dataSource = new AppYearStatsDataSource(this.service, this.loadMore);
+    this.dataSource = new AppYearStatsDataSource(this.service);
   }
 
-  onScroll() {
-    this.loadMore.next();
-  }
 }

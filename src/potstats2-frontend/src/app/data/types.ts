@@ -21,3 +21,11 @@ export interface YearStats {
   avg_post_length: number,
   threads_created: number
 }
+
+export interface WeekdayStats {
+  weekday: number,
+  post_count: number,
+  edit_count: number,
+  avg_post_length: number,
+  threads_created: number
+}

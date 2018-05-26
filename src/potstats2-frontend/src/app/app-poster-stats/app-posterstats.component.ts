@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { MatPaginator, MatSort } from '@angular/material';
+import { MatSort } from '@angular/material';
 import { AppPosterstatsDataSource } from './app-posterstats-data-source';
 import {PosterStatsService} from '../data/poster-stats.service';
 import {YearStateService} from "../year-state.service";

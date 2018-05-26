@@ -101,7 +101,7 @@ def boards():
             'thread_count': row.thread_count,
             'post_count': int(row.post_count),
         })
-    return json_response(rows)
+    return json_response({'rows': rows})
 
 
 @app.route('/api/social-graph')

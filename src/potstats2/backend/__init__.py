@@ -205,11 +205,13 @@ def poster_stats():
     for r in query.all():
         rows.append(r._asdict())
 
+    next_args = dict(year=year, bid=bid, order=order, order_by=order_by_column, limit=limit)
+    if rows:
+        next_args.update(dict(following_uid=rows[-1]['User'].uid, following_ob=rows[-1][order_by_column]))
+
     return json_response({
         'rows': rows,
-        'next': url_for('poster_stats', year=year, bid=bid,
-                        order=order, order_by=order_by_column,
-                        limit=limit, following_uid=rows[-1]['User'].uid, following_ob=rows[-1][order_by_column])
+        'next': url_for('poster_stats', **next_args)
     })
 
 

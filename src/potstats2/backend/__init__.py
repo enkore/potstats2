@@ -2,7 +2,7 @@ import configparser
 import json
 
 from flask import Flask, request, Response, url_for, g
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, tuple_, column
 
 from ..db import Post, User, LinkType
 from .. import db, dal, config
@@ -170,7 +170,8 @@ def poster_stats():
     year = request_arg('year', int, default=None)
     bid = request_arg('bid', int, default=None)
     limit = request_arg('limit', int, default=1000)
-    offset = request_arg('offset', int, default=0)
+    following_uid = request_arg('following_uid', int, default=None)
+    following_ob = request_arg('following_ob', float, default=None)
     order_by_order = request_arg('order_by', str, default='desc')
     order_by_column = request_arg('order_by_column', str, default='post_count')
 
@@ -188,7 +189,17 @@ def poster_stats():
     # Have to use offset, because we don't order by any unique, orderable column.
     # {Finding a way to adapt the pk-index method to pagination to our situation would be great,
     #  since most queries do not satisfy the simple criterion above.}
-    query = dal.poster_stats(session, year, bid).order_by(order_by).limit(limit).offset(offset)
+    query = dal.poster_stats(session, year, bid).order_by(order_by, User.uid)
+
+    if following_ob and following_uid:
+        if order_by_order == 'asc':
+            query = query.filter(tuple_(column(order_by_column), User.uid) > tuple_(following_ob, following_uid))
+        else:
+            query = query.filter(tuple_(column(order_by_column), User.uid) < tuple_(following_ob, following_uid))
+    elif following_ob or following_uid:
+        raise APIError('Need to specify either both or none of following_uid, following_ob.')
+
+    query = query.limit(limit)
 
     rows = []
     for r in query.all():

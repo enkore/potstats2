@@ -1,23 +1,16 @@
 import { Injectable } from '@angular/core';
 import {DataModule} from './data.module';
-import {HttpClient, HttpParams} from '@angular/common/http';
-import {PosterStatsResponse} from './types';
+import {HttpClient} from '@angular/common/http';
+import {PosterStats} from './types';
 import {environment} from '../../environments/environment';
-import {map} from 'rxjs/operators';
+import {BaseDataService} from "../base-data-service";
 
 @Injectable({
   providedIn: DataModule,
 })
-export class PosterStatsService {
+export class PosterStatsService extends BaseDataService<PosterStats>{
 
-  uri = environment.backend + '/poster-stats';
+  protected uri = environment.backend + '/poster-stats';
 
-  constructor(private http: HttpClient) { }
-  execute(year: number | null) {
-    const options = year ?
-      { params: new HttpParams().set('year', year.toString()) } : {};
-    return this.http.get<PosterStatsResponse>(this.uri, options).pipe(
-      map(response => response.rows)
-    );
-  }
+  constructor(protected http: HttpClient) { super() }
 }

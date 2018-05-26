@@ -205,7 +205,12 @@ def poster_stats():
     for r in query.all():
         rows.append(r._asdict())
 
-    return json_response({'rows': rows})
+    return json_response({
+        'rows': rows,
+        'next': url_for('poster_stats', year=year, bid=bid,
+                        order=order, order_by=order_by_column,
+                        limit=limit, following_uid=rows[-1]['User'].uid, following_ob=rows[-1][order_by_column])
+    })
 
 
 def time_segregated_stats(time_column, time_column_name):

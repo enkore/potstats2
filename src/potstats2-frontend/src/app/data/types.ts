@@ -14,6 +14,10 @@ export interface PosterStats {
   quotes_count:	number;
 }
 
-export interface PosterStatsResponse {
-  rows: PosterStats[];
+export interface YearStats {
+  year: number,
+  post_count: number,
+  edit_count: number,
+  avg_post_length: number,
+  threads_created: number
 }

@@ -15,7 +15,7 @@ export abstract class BaseDataService<T> {
   protected abstract uri: string;
   protected abstract http: HttpClient;
 
-  private nextPage: string = null;
+  private nextPage: string = undefined;
 
   execute(params: {}): Observable<T[]> {
     for (let k in params) {
@@ -34,18 +34,12 @@ export abstract class BaseDataService<T> {
     );
   }
   next(): Observable<T[]> {
-    if (this.nextPage == null) {
+    if (this.nextPage === undefined) {
       return of([]);
     }
     return this.http.get<RowResponse<T>>(environment.backend + this.nextPage).pipe(
       map(response => {
-        const next: string = response.next;
-        if (next.includes('following')) {
-          this.nextPage = response.next;
-        } else {
-          this.nextPage = null;
-        }
-        console.log("next page", this.nextPage);
+      this.nextPage = response.next;
         return response.rows;
       })
     );

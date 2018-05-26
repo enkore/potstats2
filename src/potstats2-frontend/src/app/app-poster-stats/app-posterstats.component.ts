@@ -11,12 +11,10 @@ import {Subject} from "rxjs/internal/Subject";
   styleUrls: ['./app-posterstats.component.css']
 })
 export class AppPosterstatsComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
   dataSource: AppPosterstatsDataSource;
 
   loadMore = new Subject<void>();
-  /** Columns displayed in the table. Columns IDs can be added, removed, or reordered. */
   displayedColumns = ['name', 'post_count', 'edit_count', 'avg_post_length', 'threads_created', 'quoted_count', 'quotes_count'];
 
   constructor(private service: PosterStatsService, private yearState: YearStateService) {}

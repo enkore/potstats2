@@ -9,12 +9,14 @@ export abstract class BaseDataSource<T> extends DataSource<T> {
   protected connected = false;
   protected loadedData: T[] = [];
 
-  protected sorting: Observable<Sort> = of(this.sort).pipe(
-    concat(<Observable<Sort>>this.sort.sortChange));
+  protected sorting: Observable<Sort>;
 
   protected constructor(protected dataLoader: BaseDataService<T>,
-                        private loadMore: Observable<void>, private sort: MatSort) {
+                        private loadMore: Observable<void>, private sort: MatSort = null) {
     super();
+    if (sort !== null) {
+      this.sorting = of(this.sort).pipe(concat(<Observable<Sort>>this.sort.sortChange));
+    }
   }
 
   protected abstract changedParameters(): Observable<{}>

@@ -1,0 +1,32 @@
+<div class="mat-elevation-z8"
+     infiniteScroll
+     [infiniteScrollDistance]="2"
+     [infiniteScrollThrottle]="50"
+     (scrolled)="onScroll()">
+  <mat-table #table [dataSource]="dataSource" matSort aria-label="Elements">
+
+    <ng-container matColumnDef="year">
+      <mat-header-cell *matHeaderCellDef>Jahr</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.year}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="post_count">
+      <mat-header-cell *matHeaderCellDef>Posts</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.post_count}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="edit_count">
+      <mat-header-cell *matHeaderCellDef>Edits</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.edit_count}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="avg_post_length">
+      <mat-header-cell *matHeaderCellDef>Durchschnittliche Postlänge</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.avg_post_length}}</mat-cell>
+    </ng-container>
+    <ng-container matColumnDef="threads_created">
+      <mat-header-cell *matHeaderCellDef>Threads erstellt</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.threads_created}}</mat-cell>
+    </ng-container>
+    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+    <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+  </mat-table>
+  <button mat-button (click)="onScroll()">Weitere Einträge laden</button>
+</div>

@@ -15,10 +15,12 @@ import {RouterModule, Routes} from '@angular/router';
 import { AppPosterstatsComponent } from './app-poster-stats/app-posterstats.component';
 import { DataModule } from './data/data.module';
 import {InfiniteScrollModule} from "ngx-infinite-scroll";
+import { AppYearStatsComponent } from './app-year-stats/app-year-stats.component';
 
 
 const routes: Routes = [
   { path: 'userstats', component: AppPosterstatsComponent},
+  { path: 'year-to-year-stats', component: AppYearStatsComponent},
   { path: 'impress', component: ImpressComponent },
   { path: 'privacy', component: PrivacyComponent }
 ];
@@ -29,6 +31,7 @@ const routes: Routes = [
     ImpressComponent,
     PrivacyComponent,
     AppPosterstatsComponent,
+    AppYearStatsComponent,
   ],
   imports: [
     BrowserModule,
@@ -45,6 +48,7 @@ const routes: Routes = [
     MatTableModule,
     MatSortModule,
     DataModule,
+    MatPaginatorModule,
   ],
   providers: [],
   bootstrap: [AppComponent]

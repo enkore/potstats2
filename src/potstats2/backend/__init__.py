@@ -92,14 +92,15 @@ def backend_stats():
 @cache_api_view
 def boards():
     session = get_session()
-    rows = {}
+    rows = []
     for row in dal.boards(session).all():
-        rows[row.Board.bid] = {
+        rows.append({
+            'bid': row.Board.bid,
             'name': row.Board.name,
             'description': row.Board.description,
             'thread_count': row.thread_count,
             'post_count': int(row.post_count),
-        }
+        })
     return json_response(rows)
 
 

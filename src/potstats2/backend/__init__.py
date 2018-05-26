@@ -160,10 +160,13 @@ def poster_stats():
 
     Query parameters:
     - year: optional int, restrict to certain year
-    - limit: optional int, default 1000, restrict number of rows
-    - offset: optional int, default 0, set offset
     - order: asc/desc, default desc, set sort direction
-    - order_by: default post_count, one of ('post_count', 'edit_count', 'avg_post_length', 'threads_created')
+    - order_by: default 'post_count', one of ('post_count', 'edit_count', 'avg_post_length', 'threads_created', 'quoted_count', 'quotes_count')
+
+    Parameters for pagination:
+    - limit: optional int, default 1000, restrict number of rows
+    - following_uid: the UID of the last row currently held by the client
+    - following_ob: the value of the order_by column of the last row currently held by the client
     """
     session = get_session()
 
@@ -175,7 +178,7 @@ def poster_stats():
     order = request_arg('order', str, default='desc')
     order_by_column = request_arg('order_by', str, default='post_count')
 
-    if order_by_column not in ('post_count', 'edit_count', 'avg_post_length', 'threads_created'):
+    if order_by_column not in ('post_count', 'edit_count', 'avg_post_length', 'threads_created', 'quoted_count', 'quotes_count'):
         raise APIError('Invalid order_by_column: %s' % order_by_column)
 
     try:

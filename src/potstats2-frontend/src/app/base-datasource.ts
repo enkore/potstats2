@@ -5,7 +5,7 @@ import { Observable} from 'rxjs';
 export abstract class BaseDataSource<T> extends DataSource<T> {
   protected connected = false;
 
-  protected constructor(private paginator: MatPaginator, protected sort: MatSort) {
+  protected constructor(protected paginator: MatPaginator, protected sort: MatSort) {
     super();
   }
 

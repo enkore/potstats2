@@ -1,8 +1,8 @@
 <div class="mat-elevation-z8">
-  <mat-table #table [dataSource]="dataSource" matSort aria-label="Elements">
+  <mat-table #table [dataSource]="dataSource" [trackBy]="trackByUid" matSort aria-label="Elements">
 
     <ng-container matColumnDef="name">
-      <mat-header-cell *matHeaderCellDef mat-sort-header>Name</mat-header-cell>
+      <mat-header-cell *matHeaderCellDef>Name</mat-header-cell>
       <mat-cell *matCellDef="let row">{{row.User.name}}</mat-cell>
     </ng-container>
 
@@ -35,7 +35,6 @@
   </mat-table>
 
   <mat-paginator #paginator
-    [length]="dataSource.data.length"
     [pageIndex]="0"
     [pageSize]="50"
     [pageSizeOptions]="[25, 50, 100, 250]">

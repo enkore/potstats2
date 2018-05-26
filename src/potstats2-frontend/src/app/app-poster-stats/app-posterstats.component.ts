@@ -21,4 +21,8 @@ export class AppPosterstatsComponent implements OnInit {
   ngOnInit() {
     this.dataSource = new AppPosterstatsDataSource(this.service, this.yearState, this.paginator, this.sort);
   }
+
+  trackByUid(index, item) {
+    return item.uid;
+  }
 }

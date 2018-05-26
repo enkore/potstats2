@@ -14,6 +14,7 @@ import { PrivacyComponent } from './privacy/privacy.component';
 import {RouterModule, Routes} from '@angular/router';
 import { AppPosterstatsComponent } from './app-poster-stats/app-posterstats.component';
 import { DataModule } from './data/data.module';
+import {InfiniteScrollModule} from "ngx-infinite-scroll";
 
 
 const routes: Routes = [
@@ -32,6 +33,7 @@ const routes: Routes = [
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
+    InfiniteScrollModule,
     LayoutModule,
     MatToolbarModule,
     MatButtonModule,
@@ -41,7 +43,6 @@ const routes: Routes = [
     MatSelectModule,
     RouterModule.forRoot(routes),
     MatTableModule,
-    MatPaginatorModule,
     MatSortModule,
     DataModule,
   ],

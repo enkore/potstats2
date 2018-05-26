@@ -4,7 +4,8 @@
 
 export const environment = {
   production: false,
-  backend: 'http://potstats2.enkore.de/api/',
+  backend: 'http://potstats2.enkore.de',
+  default_limit: 200,
 };
 
 /*

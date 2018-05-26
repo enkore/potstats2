@@ -1,4 +1,9 @@
-<div class="mat-elevation-z8">
+<div class="mat-elevation-z8"
+     infiniteScroll
+     [infiniteScrollDistance]="2"
+     [infiniteScrollThrottle]="50"
+     (scrolled)="onScroll()"
+>
   <mat-table #table [dataSource]="dataSource" [trackBy]="trackByUid" matSort aria-label="Elements">
 
     <ng-container matColumnDef="name">
@@ -33,10 +38,5 @@
     <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
     <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
   </mat-table>
-
-  <mat-paginator #paginator
-    [pageIndex]="0"
-    [pageSize]="50"
-    [pageSizeOptions]="[25, 50, 100, 250]">
-  </mat-paginator>
+  <button mat-button (click)="onScroll()">Weitere Einträge laden</button>
 </div>

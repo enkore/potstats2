@@ -10,7 +10,7 @@ import {BaseDataService} from "../base-data-service";
 })
 export class PosterStatsService extends BaseDataService<PosterStats>{
 
-  protected uri = environment.backend + '/poster-stats';
+  protected uri = environment.backend + '/api/poster-stats';
 
   constructor(protected http: HttpClient) { super() }
 }

@@ -1,15 +1,23 @@
 import { DataSource } from '@angular/cdk/collections';
-import { MatPaginator, MatSort } from '@angular/material';
-import { Observable} from 'rxjs';
+import {MatSort, Sort} from '@angular/material';
+import { Observable, merge } from 'rxjs';
+import {BaseDataService} from "./base-data-service";
+import {concat, flatMap, map, takeWhile} from "rxjs/operators";
+import {of} from "rxjs/internal/observable/of";
 
 export abstract class BaseDataSource<T> extends DataSource<T> {
   protected connected = false;
+  protected loadedData: T[] = [];
 
-  protected constructor(private paginator: MatPaginator, protected sort: MatSort) {
+  protected sorting: Observable<Sort> = of(this.sort).pipe(
+    concat(<Observable<Sort>>this.sort.sortChange));
+
+  protected constructor(protected dataLoader: BaseDataService<T>,
+                        private loadMore: Observable<void>, private sort: MatSort) {
     super();
   }
 
-  protected abstract connectData(): Observable<T[]>
+  protected abstract changedParameters(): Observable<{}>
 
   /**
    * Connect this data source to the table. The table will only update when
@@ -18,11 +26,25 @@ export abstract class BaseDataSource<T> extends DataSource<T> {
    */
   connect(): Observable<T[]> {
     this.connected = true;
-    const dataSource = this.connectData();
-
-    // TODO: pagination
-
-    return dataSource;
+    const infiniteLoader: Observable<T[]> =
+      this.loadMore.pipe(
+        flatMap(() => this.dataLoader.next().pipe(
+          map(data => {
+            this.loadedData.push(...data);
+            return this.loadedData;
+          })
+        ))
+      );
+    const freshLoader = this.changedParameters().pipe(
+      flatMap(params => this.dataLoader.execute(params)),
+      map(data => {
+        this.loadedData = data;
+        return data;
+      })
+    );
+    return merge(infiniteLoader, freshLoader).pipe(
+      takeWhile(() => this.connected),
+    );
   }
 
   /**
@@ -31,15 +53,6 @@ export abstract class BaseDataSource<T> extends DataSource<T> {
    */
   disconnect() {
     this.connected = false;
-  }
-
-  /**
-   * Paginate the data (client-side). If you're using server-side pagination,
-   * this would be replaced by requesting the appropriate data from the server.
-   */
-  private getPagedData(data: T[]) {
-    const startIndex = this.paginator.pageIndex * this.paginator.pageSize;
-    return data.splice(startIndex, this.paginator.pageSize);
   }
 
 }

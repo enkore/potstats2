@@ -199,20 +199,20 @@ def poster_stats():
     elif (following_ob is None or following_uid is None) and (following_ob is not None or following_uid is not None):
         raise APIError('Need to specify either both or none of following_uid, following_ob.')
 
-    query = query.limit(limit)
+    query = query.limit(limit + 1)
 
     rows = []
     for r in query.all():
         rows.append(r._asdict())
 
-    next_args = dict(year=year, bid=bid, order=order, order_by=order_by_column, limit=limit)
-    if rows:
-        next_args.update(dict(following_uid=rows[-1]['User'].uid, following_ob=rows[-1][order_by_column]))
+    response = dict(rows=rows)
+    if len(rows) == limit + 1:
+        # we are on a full "page" with at least one row after that page
+        response['next'] = url_for('poster_stats', year=year, bid=bid,
+                                   order=order, order_by=order_by_column, limit=limit,
+                                   following_uid=rows[-1]['User'].uid, following_ob=rows[-1][order_by_column])
 
-    return json_response({
-        'rows': rows,
-        'next': url_for('poster_stats', **next_args)
-    })
+    return json_response(response)
 
 
 def time_segregated_stats(time_column, time_column_name):

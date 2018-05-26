@@ -161,6 +161,7 @@ def poster_stats():
     Query parameters:
     - year: optional int, restrict to certain year
     - limit: optional int, default 1000, restrict number of rows
+    - offset: optional int, default 0, set offset
     - order_by: asc/desc, default desc, set sort direction
     - order_by_column: default post_count, one of ('post_count', 'edit_count', 'avg_post_length', 'threads_created')
     """
@@ -169,6 +170,7 @@ def poster_stats():
     year = request_arg('year', int, default=None)
     bid = request_arg('bid', int, default=None)
     limit = request_arg('limit', int, default=1000)
+    offset = request_arg('offset', int, default=0)
     order_by_order = request_arg('order_by', str, default='desc')
     order_by_column = request_arg('order_by_column', str, default='post_count')
 
@@ -183,7 +185,10 @@ def poster_stats():
     except KeyError:
         raise APIError('Invalid order_by: %s' % order_by_order)
 
-    query = dal.poster_stats(session, year, bid).order_by(order_by).limit(limit)
+    # Have to use offset, because we don't order by any unique, orderable column.
+    # {Finding a way to adapt the pk-index method to pagination to our situation would be great,
+    #  since most queries do not satisfy the simple criterion above.}
+    query = dal.poster_stats(session, year, bid).order_by(order_by).limit(limit).offset(offset)
 
     rows = []
     for r in query.all():

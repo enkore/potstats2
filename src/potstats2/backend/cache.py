@@ -56,9 +56,9 @@ def cache_api_view(view):
 
                 cache_db.set(key, compressed_data)
                 # It's only an actual miss if we are able to cache the response
-                stats_db.incr(view.__name__ + '/cache_miss')
-                stats_db.incr(view.__name__ + '/cache_size', len(data))
-                stats_db.incr(view.__name__ + '/cache_size_gzipped', len(compressed_data))
+                stats_db.incr(view.__name__ + '/cache/miss')
+                stats_db.incr(view.__name__ + '/cache/size', len(data))
+                stats_db.incr(view.__name__ + '/cache/size_gzipped', len(compressed_data))
 
                 if ua_does_gzip:
                     response.set_data(compressed_data)
@@ -70,7 +70,7 @@ def cache_api_view(view):
         else:
             if etag in request.headers.get('If-None-Match', ''):
                 return Response(status=304)
-            stats_db.incr(view.__name__ + '/cache_hits')
+            stats_db.incr(view.__name__ + '/cache/hits')
             response = Response(status=200, mimetype='application/json')
             if ua_does_gzip:
                 response.set_data(cached)

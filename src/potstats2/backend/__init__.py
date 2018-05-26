@@ -207,6 +207,7 @@ def poster_stats():
 
     response = dict(rows=rows)
     if len(rows) == limit + 1:
+        rows.pop()
         # we are on a full "page" with at least one row after that page
         response['next'] = url_for('poster_stats', year=year, bid=bid,
                                    order=order, order_by=order_by_column, limit=limit,

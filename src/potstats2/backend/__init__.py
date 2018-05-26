@@ -224,10 +224,11 @@ def time_segregated_stats(time_column, time_column_name):
 
         query = dal.aggregate_stats_segregated_by_time(session, time_column, year, bid)
 
-        rows = {}
+        rows = []
         for row in query.all():
             row = row._asdict()
-            rows[row.pop('time')] = row
+            row[time_column_name] = row.pop('time')
+            rows.append(row)
 
         return json_response({'rows': rows})
     view.__name__ = 'view_' + time_column_name

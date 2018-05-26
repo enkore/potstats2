@@ -162,8 +162,8 @@ def poster_stats():
     - year: optional int, restrict to certain year
     - limit: optional int, default 1000, restrict number of rows
     - offset: optional int, default 0, set offset
-    - order_by: asc/desc, default desc, set sort direction
-    - order_by_column: default post_count, one of ('post_count', 'edit_count', 'avg_post_length', 'threads_created')
+    - order: asc/desc, default desc, set sort direction
+    - order_by: default post_count, one of ('post_count', 'edit_count', 'avg_post_length', 'threads_created')
     """
     session = get_session()
 
@@ -172,8 +172,8 @@ def poster_stats():
     limit = request_arg('limit', int, default=1000)
     following_uid = request_arg('following_uid', int, default=None)
     following_ob = request_arg('following_ob', float, default=None)
-    order_by_order = request_arg('order_by', str, default='desc')
-    order_by_column = request_arg('order_by_column', str, default='post_count')
+    order = request_arg('order', str, default='desc')
+    order_by_column = request_arg('order_by', str, default='post_count')
 
     if order_by_column not in ('post_count', 'edit_count', 'avg_post_length', 'threads_created'):
         raise APIError('Invalid order_by_column: %s' % order_by_column)
@@ -182,9 +182,9 @@ def poster_stats():
         order_by = {
             'asc': order_by_column,
             'desc': desc(order_by_column),
-        }[order_by_order]
+        }[order]
     except KeyError:
-        raise APIError('Invalid order_by: %s' % order_by_order)
+        raise APIError('Invalid order_by: %s' % order)
 
     # Have to use offset, because we don't order by any unique, orderable column.
     # {Finding a way to adapt the pk-index method to pagination to our situation would be great,
@@ -192,7 +192,7 @@ def poster_stats():
     query = dal.poster_stats(session, year, bid).order_by(order_by, User.uid)
 
     if following_ob and following_uid:
-        if order_by_order == 'asc':
+        if order == 'asc':
             query = query.filter(tuple_(column(order_by_column), User.uid) > tuple_(following_ob, following_uid))
         else:
             query = query.filter(tuple_(column(order_by_column), User.uid) < tuple_(following_ob, following_uid))

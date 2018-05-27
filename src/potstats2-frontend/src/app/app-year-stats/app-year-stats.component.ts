@@ -41,24 +41,22 @@ export class AppYearStatsComponent implements OnInit {
     },
   ];
   displayedColumns = ['year'].concat(...this.selectableStats.map(stats => stats.value));
-  yLabel: string;
-
-
   selectedStats = this.selectableStats[0];
 
-  constructor(private service: YearStatsService, private stateService: GlobalFilterStateService) {}
+  constructor(private service: YearStatsService, private stateService: GlobalFilterStateService) {
+  }
+
   ngOnInit() {
     this.dataSource = new AppYearStatsDataSource(this.service, this.stateService);
     const chartDataSource = this.dataSource.connect();
-  this.chartData = chartDataSource.pipe(
-    combineLatest(of(this.selectableStats[0]).pipe(concat(<Observable<Stats>>this.statsSelect.valueChange)), (rows, selectedStats) => {
-      return {
-        rows: rows,
-        selectedStats: selectedStats
-      }
-    }),
+    this.chartData = chartDataSource.pipe(
+      combineLatest(of(this.selectableStats[0]).pipe(concat(<Observable<Stats>>this.statsSelect.valueChange)), (rows, selectedStats) => {
+        return {
+          rows: rows,
+          selectedStats: selectedStats
+        }
+      }),
       map(state => {
-        this.yLabel = state.selectedStats.label;
         return state.rows.map(row => {
           return {
             name: row.year.toString(),

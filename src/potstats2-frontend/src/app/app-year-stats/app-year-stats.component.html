@@ -4,15 +4,15 @@
       <mat-option *ngFor="let statOption of selectableStats" [value]="statOption">{{statOption.label}}</mat-option>
     </mat-select>
   </mat-form-field>
-  <div class="graphs" fxFlex="70%">
+  <div fxFlex="70%" fxFlexFill>
     <ngx-charts-bar-vertical
+      [view]="[800, 500]"
       [results]="chartData | async"
       xAxis="true"
       yAxis="true"
       showXAxisLabel="true"
-      showYAxisLabel="true"
-      xAxisLabel="Jahr"
-      [yAxisLabel]="yLabel">
+      showYAxisLabel="false"
+      xAxisLabel="Jahr">
     </ngx-charts-bar-vertical>
     </div>
   <mat-card fxFlex="20%">

@@ -178,14 +178,17 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
     return query
 
 
-def boards(session):
+def boards(session, year=None):
     """
     Retrieve boards and aggregate statistics.
 
     Result columns:
     Board, thread_count, post_count
     """
-    sq = session.query(Thread.bid, Thread.tid, func.count(Post.pid).label('post_count')).join(Thread.posts).group_by(Thread.tid).subquery()
+    sq = session.query(Thread.bid, Thread.tid, func.count(Post.pid).label('post_count')).join(Thread.posts).group_by(Thread.tid)
+    if year:
+        sq = apply_year_filter(sq, year)
+    sq = sq.subquery()
     query = (
         session
         .query(Board, func.count(sq.c.tid).label('thread_count'), func.sum(sq.c.post_count).label('post_count'))

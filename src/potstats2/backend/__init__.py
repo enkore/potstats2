@@ -92,8 +92,9 @@ def backend_stats():
 @cache_api_view
 def boards():
     session = get_session()
+    year = request_arg('year', int, default=None)
     rows = []
-    for row in dal.boards(session).all():
+    for row in dal.boards(session, year).all():
         rows.append({
             'bid': row.Board.bid,
             'name': row.Board.name,

@@ -3,6 +3,24 @@ export interface Stats {
   value: string,
 }
 
+export interface TopThread {
+  tid: number,
+  title: string,
+  subtitle: string,
+  thread_post_count: number,
+}
+
+export interface SeriesStats {
+  name: string,
+  value: string
+  threads: TopThread[],
+}
+
+export interface MultiSeriesStat {
+  name: string,
+  series: SeriesStats[],
+}
+
 export interface User {
   name: string;
   uid: number;
@@ -38,6 +56,15 @@ export interface YearStats {
 
 export interface WeekdayStats {
   weekday: number,
+  post_count: number,
+  edit_count: number,
+  avg_post_length: number,
+  threads_created: number,
+  active_users: number,
+}
+
+export interface HourlyStats {
+  weekday_hour: string,
   post_count: number,
   edit_count: number,
   avg_post_length: number,

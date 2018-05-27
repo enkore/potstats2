@@ -30,12 +30,14 @@ import {AppBoardStatsComponent} from './app-board-stats/app-board-stats.componen
 import {FlexModule} from "@angular/flex-layout";
 import {AppBarGraphComponent} from './app-bar-graph/app-bar-graph.component';
 import {NoopPipe} from './noop.pipe';
+import {AppDailyStatsComponent} from './app-daily-stats/app-daily-stats.component';
 
 
 const routes: Routes = [
   { path: 'userstats', component: AppPosterstatsComponent},
   { path: 'year-to-year-stats', component: AppYearStatsComponent},
   { path: 'weekday-stats', component: AppWeekdayStatsComponent},
+  {path: 'daily-stats', component: AppDailyStatsComponent},
   { path: 'board-stats', component: AppBoardStatsComponent},
   { path: 'impress', component: ImpressComponent },
   { path: 'privacy', component: PrivacyComponent }
@@ -53,6 +55,7 @@ const routes: Routes = [
     AppBoardStatsComponent,
     AppBarGraphComponent,
     NoopPipe,
+    AppDailyStatsComponent,
   ],
   imports: [
     BrowserModule,

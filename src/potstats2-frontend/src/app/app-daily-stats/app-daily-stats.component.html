@@ -1,0 +1,26 @@
+<div class="container" fxLayout="column" fxLayoutWrap>
+  <mat-form-field class="app-filter-select">
+    <mat-select [(value)]="selectedStats">
+      <mat-option *ngFor="let statOption of selectableStats" [value]="statOption">
+        {{statOption.label}}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <div fxFlex="70%" fxFlexFill>
+    <ngx-charts-heat-map
+      [view]="[1400, 400]"
+      [results]="statsSource | async"
+      xAxis="true"
+      yAxis="true"
+      showXAxisLabel="true"
+      showYAxisLabel="true"
+      scheme="natural"
+      xAxisLabel="Woche in {{selectedYear}}"
+      legend="true"
+    >
+      <ng-template #tooltipTemplate let-model="model">
+        {{model.name}}: {{model.value}} {{selectedStats.label}}
+      </ng-template>
+    </ngx-charts-heat-map>
+  </div>
+</div>

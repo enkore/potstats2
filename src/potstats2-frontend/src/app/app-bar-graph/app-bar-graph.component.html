@@ -1,5 +1,5 @@
 <div class="graph container" fxLayout="column">
-  <mat-form-field fxFlex="10%">
+  <mat-form-field class="app-filter-select">
     <mat-select [(value)]="selectedStats">
       <mat-option *ngFor="let statOption of selectableStats" [value]="statOption">
         {{statOption.label}}
@@ -10,6 +10,7 @@
     <ngx-charts-bar-vertical
       [view]="viewSize"
       [results]="chartData | async"
+      scheme="natural"
       xAxis="true"
       yAxis="true"
       showXAxisLabel="true"

@@ -1,0 +1,12 @@
+<div class="container" fxLayout="column" fxLayoutWrap>
+  <ngx-charts-heat-map
+    [view]="[1000, 1000]"
+    [results]="statsSource | async"
+    xAxis="true"
+    yAxis="true"
+    showXAxisLabel="true"
+    showYAxisLabel="true"
+    xAxisLabel="Woche"
+  >
+  </ngx-charts-heat-map>
+</div>

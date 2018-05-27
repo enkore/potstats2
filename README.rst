@@ -1,11 +1,11 @@
-postats2
-========
+potstats2
+=========
 
 A classic four-zoo enterprise architecture:
 
 - Backoffice: The worldeater populates the database via the XML API
 - Backend: A JSON-API-to-RDBMS connector
-- Frontend: Need that one too :D
+- Frontend: Displays backend data as tables, graphs etc. and allows user interaction
 - Business Intelligence: potstats2-analytics compiles secondary intelligence files from the primary database
 
 Le Stack
@@ -13,6 +13,7 @@ Le Stack
 - Database: PostgreSQL
 - Database connector: sqlalchemy/psycopg2
 - HTTP adapter: flask
+- Frontend: Angular
 
 Public instance lives at http://potstats2.enkore.de/api/ (no TLS yet, because that would show up in public CT logs).
 That instance has GET-CORS enabled (for now) and thus the API can be used from other origins.
@@ -65,42 +66,24 @@ Configuration (src/potstats2/config.py)
    # No post-mortem debugger
    export POTSTATS2_DEBUG=0
 
-Error handling
-++++++++++++++
+Worldeater
+----------
 
-Instead of complex error handling (beyond e.g. retries within the API abstraction) we can use checkpointing, since all data is stored in a SQL database. The design itself already implies checkpoints, some extra commits are already in place. Phases which will take a lot of time in practice (thread, update and post discovery) probably should get some time-based checkpoints.
+Instead of complex error handling (beyond e.g. retries within the API abstraction) we can use checkpointing,
+since all data is stored in a SQL database. The design itself already implies checkpoints,
+some extra commits are already in place.
+Phases which will take a lot of time in practice (thread, update and post discovery)
+probably should get some time-based checkpoints.
 
 Backend
 -------
-
-You're not an alcoholic if you flask it™
-
-Methinks: Anyone can serve a bit of JS for the frontend, not the problem.
-Frontend wants to get at the data, so we probably need something like
-/api/stats?year=2005&order_by=post_frequency&limit=1000 -> ::
-
-  {'rows': [
-    {'user': {'name': ..., 'id': ...},
-     'posts': 123928392103,
-     'threads': 1231,
-     'posts_per_day': 213123,
-     ...},
-    ...
-  ]}
-
-Rinse and repeat for the other statistics. Once we figured that out we can
-add additional indexes or views to the DB as needed for performance.
-We could even use materialized views for aggregate statistics
-that we simply refresh after the crawler ran.
-
----
 
 Run ``potstats2-backend-dev`` for the usual Flask dev server.
 
 Try http://127.0.0.1:5000/api/poster-stats?year=2003
 
-Optional API caching
-++++++++++++++++++++
+Optional API caching and statistics
++++++++++++++++++++++++++++++++++++
 
 Redis can be used to cache API requests. Since there is no time-based expiry, setting
 a memory limit and an eviction policy as per https://redis.io/topics/lru-cache is recommended.
@@ -119,26 +102,12 @@ for lazy folks, ``potstats2-invalidate-cache``.
 
 The Redis DB used for caching is ``0``; DB ``1`` contains some basic statistics.
 
-About SQLAlchemy
-----------------
+Statistics can be accessed through the ``/api/backend-stats`` endpoint, especially if you are using
+a recent Firefox version, which formats JSON quite nicely by itself.
 
-The ORM is fairly similar to Django (well, it's a Python ORM based on the ActiveRecord pattern...),
-but with less magic and no global state. E.g. instead of ``User.objects.get(...)`` (where does the
-database connection even come from?) you would write ``session.query(User).get(...)`` (ahh,
-a database session!).
+Frontend
+--------
 
-``potstats2.db.get_session()`` gives you an ORM session. If needed (unlikely), the engine object
-can be accessed through ``session.bind`` or ``potstats2.db.get_engine()``.
-
-- https://docs.sqlalchemy.org/en/latest/orm/tutorial.html#querying
-
-Ideas corner
-------------
-
-    Auf jeden Fall muss ein "Verfasser-Guess" auf Basis eines deep learning frameworks rein. 
-    
-    -- Oli
-
-"Personal statistics", so filtering stats by a user to see things like when a specific user posts. I wouldn't feel comfortable to make this public (even though it technically kinda already is), so this should probably be private to users. This could be done by having a Bot-account PM a login link on request. Or something like that.
-
-Thread tags aren't captured
+Go to the ``src/potstats2-frontend`` directory and ``npm install`` it. The ``pack-dist.sh`` script
+creates a tarball for deployment at ``dist/potstats2-frontend.tar.gz``. The tarball includes
+pre-compressed files compatible with nginx's ``gzip_static`` module.

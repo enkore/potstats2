@@ -223,7 +223,6 @@ def poster_stats():
 
 
 def time_segregated_stats(time_column, time_column_name):
-    @cache_api_view
     def view():
         session = get_session()
         year = request_arg('year', int, default=None)
@@ -239,7 +238,7 @@ def time_segregated_stats(time_column, time_column_name):
 
         return json_response({'rows': rows})
     view.__name__ = 'view_' + time_column_name
-    return view
+    return cache_api_view(view)
 
 
 app.route('/api/weekday-stats')(

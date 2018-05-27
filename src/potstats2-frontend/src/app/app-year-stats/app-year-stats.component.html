@@ -1,20 +1,10 @@
 <div class="container" fxLayout="column" fxLayoutWrap>
-  <mat-form-field fxFlex="10%">
-    <mat-select [(value)]="selectedStats">
-      <mat-option *ngFor="let statOption of selectableStats" [value]="statOption">{{statOption.label}}</mat-option>
-    </mat-select>
-  </mat-form-field>
-  <div fxFlex="70%" fxFlexFill>
-    <ngx-charts-bar-vertical
-      [view]="[800, 500]"
-      [results]="chartData | async"
-      xAxis="true"
-      yAxis="true"
-      showXAxisLabel="true"
-      showYAxisLabel="false"
-      xAxisLabel="Jahr">
-    </ngx-charts-bar-vertical>
-    </div>
+  <app-app-bar-graph
+    [selectableStats]="selectableStats"
+    xLabel="Jahr"
+    xValue="year"
+    [dataSource]="dataSource.connect()">
+  </app-app-bar-graph>
   <mat-card fxFlex="20%">
     <mat-card-header>Tabellarisch</mat-card-header>
     <mat-card-content>

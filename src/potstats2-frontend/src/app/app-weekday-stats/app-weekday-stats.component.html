@@ -1,31 +1,27 @@
-<div class="mat-elevation-z8">
+<div class="container" fxLayout="column" fxLayoutWrap>
+  <app-app-bar-graph
+    [selectableStats]="selectableStats"
+    xLabel="Tag"
+    xValue="weekday"
+    [pipe]="pipe"
+    [dataSource]="dataSource.connect()">
+  </app-app-bar-graph>
+  <mat-card fxFlex="20%">
+    <mat-card-header>Tabellarisch</mat-card-header>
+    <mat-card-content>
   <mat-table #table [dataSource]="dataSource" matSort aria-label="Elements">
 
     <ng-container matColumnDef="weekday">
       <mat-header-cell *matHeaderCellDef>Wochentag</mat-header-cell>
       <mat-cell *matCellDef="let row">{{row.weekday | weekday}}</mat-cell>
     </ng-container>
-    <ng-container matColumnDef="active_users">
-      <mat-header-cell *matHeaderCellDef>Aktive User</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.active_users}}</mat-cell>
-    </ng-container>
-    <ng-container matColumnDef="post_count">
-      <mat-header-cell *matHeaderCellDef>Posts</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.post_count}}</mat-cell>
-    </ng-container>
-    <ng-container matColumnDef="edit_count">
-      <mat-header-cell *matHeaderCellDef>Edits</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.edit_count}}</mat-cell>
-    </ng-container>
-    <ng-container matColumnDef="avg_post_length">
-      <mat-header-cell *matHeaderCellDef>Durchschnittliche Postlänge</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.avg_post_length}}</mat-cell>
-    </ng-container>
-    <ng-container matColumnDef="threads_created">
-      <mat-header-cell *matHeaderCellDef>Threads erstellt</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.threads_created}}</mat-cell>
+    <ng-container *ngFor="let col of selectableStats" [matColumnDef]="col.value">
+      <mat-header-cell *matHeaderCellDef>{{col.label}}</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row[col.value]}}</mat-cell>
     </ng-container>
     <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
     <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
   </mat-table>
+    </mat-card-content>
+  </mat-card>
 </div>

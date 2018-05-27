@@ -1,26 +1,35 @@
-import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
+import {BrowserModule} from '@angular/platform-browser';
+import {NgModule} from '@angular/core';
 
-import { AppComponent } from './app.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { LayoutModule } from '@angular/cdk/layout';
+import {AppComponent} from './app.component';
+import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+import {LayoutModule} from '@angular/cdk/layout';
 import {
-  MatToolbarModule, MatButtonModule, MatSidenavModule, MatIconModule,
-  MatListModule, MatTableModule, MatPaginatorModule, MatSortModule, MatSelectModule, MatCardModule
+  MatButtonModule,
+  MatCardModule,
+  MatIconModule,
+  MatListModule,
+  MatSelectModule,
+  MatSidenavModule,
+  MatSortModule,
+  MatTableModule,
+  MatToolbarModule
 } from '@angular/material';
-import { AppNavComponent } from './app-nav/app-nav.component';
-import { ImpressComponent } from './impress/impress.component';
-import { PrivacyComponent } from './privacy/privacy.component';
+import {AppNavComponent} from './app-nav/app-nav.component';
+import {ImpressComponent} from './impress/impress.component';
+import {PrivacyComponent} from './privacy/privacy.component';
 import {RouterModule, Routes} from '@angular/router';
-import { AppPosterstatsComponent } from './app-poster-stats/app-posterstats.component';
-import { DataModule } from './data/data.module';
+import {AppPosterstatsComponent} from './app-poster-stats/app-posterstats.component';
+import {DataModule} from './data/data.module';
 import {InfiniteScrollModule} from "ngx-infinite-scroll";
 import {NgxChartsModule} from '@swimlane/ngx-charts';
-import { AppYearStatsComponent } from './app-year-stats/app-year-stats.component';
-import { AppWeekdayStatsComponent } from './app-weekday-stats/app-weekday-stats.component';
-import { WeekdayPipe } from './weekday.pipe';
-import { AppBoardStatsComponent } from './app-board-stats/app-board-stats.component';
+import {AppYearStatsComponent} from './app-year-stats/app-year-stats.component';
+import {AppWeekdayStatsComponent} from './app-weekday-stats/app-weekday-stats.component';
+import {WeekdayPipe} from './weekday.pipe';
+import {AppBoardStatsComponent} from './app-board-stats/app-board-stats.component';
 import {FlexModule} from "@angular/flex-layout";
+import {AppBarGraphComponent} from './app-bar-graph/app-bar-graph.component';
+import {NoopPipe} from './noop.pipe';
 
 
 const routes: Routes = [
@@ -42,6 +51,8 @@ const routes: Routes = [
     AppWeekdayStatsComponent,
     WeekdayPipe,
     AppBoardStatsComponent,
+    AppBarGraphComponent,
+    NoopPipe,
   ],
   imports: [
     BrowserModule,

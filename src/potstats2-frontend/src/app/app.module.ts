@@ -6,7 +6,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { LayoutModule } from '@angular/cdk/layout';
 import {
   MatToolbarModule, MatButtonModule, MatSidenavModule, MatIconModule,
-  MatListModule, MatTableModule, MatPaginatorModule, MatSortModule, MatSelectModule
+  MatListModule, MatTableModule, MatPaginatorModule, MatSortModule, MatSelectModule, MatCardModule
 } from '@angular/material';
 import { AppNavComponent } from './app-nav/app-nav.component';
 import { ImpressComponent } from './impress/impress.component';
@@ -15,10 +15,12 @@ import {RouterModule, Routes} from '@angular/router';
 import { AppPosterstatsComponent } from './app-poster-stats/app-posterstats.component';
 import { DataModule } from './data/data.module';
 import {InfiniteScrollModule} from "ngx-infinite-scroll";
+import {NgxChartsModule} from '@swimlane/ngx-charts';
 import { AppYearStatsComponent } from './app-year-stats/app-year-stats.component';
 import { AppWeekdayStatsComponent } from './app-weekday-stats/app-weekday-stats.component';
 import { WeekdayPipe } from './weekday.pipe';
 import { AppBoardStatsComponent } from './app-board-stats/app-board-stats.component';
+import {FlexModule} from "@angular/flex-layout";
 
 
 const routes: Routes = [
@@ -46,17 +48,19 @@ const routes: Routes = [
     BrowserAnimationsModule,
     InfiniteScrollModule,
     LayoutModule,
+    NgxChartsModule,
     MatToolbarModule,
     MatButtonModule,
     MatSidenavModule,
     MatIconModule,
     MatListModule,
     MatSelectModule,
+    MatCardModule,
+    FlexModule,
     RouterModule.forRoot(routes),
     MatTableModule,
     MatSortModule,
     DataModule,
-    MatPaginatorModule,
   ],
   providers: [],
   bootstrap: [AppComponent]

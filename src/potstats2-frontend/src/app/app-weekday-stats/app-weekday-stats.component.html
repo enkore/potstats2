@@ -5,6 +5,10 @@
       <mat-header-cell *matHeaderCellDef>Wochentag</mat-header-cell>
       <mat-cell *matCellDef="let row">{{row.weekday | weekday}}</mat-cell>
     </ng-container>
+    <ng-container matColumnDef="active_users">
+      <mat-header-cell *matHeaderCellDef>Aktive User</mat-header-cell>
+      <mat-cell *matCellDef="let row">{{row.active_users}}</mat-cell>
+    </ng-container>
     <ng-container matColumnDef="post_count">
       <mat-header-cell *matHeaderCellDef>Posts</mat-header-cell>
       <mat-cell *matCellDef="let row">{{row.post_count}}</mat-cell>

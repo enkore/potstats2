@@ -11,7 +11,7 @@ import {GlobalFilterStateService} from "../global-filter-state.service";
 export class AppWeekdayStatsComponent implements OnInit {
   dataSource: AppWeekdayStatsDatasource;
 
-  displayedColumns = ['weekday', 'post_count', 'edit_count', 'avg_post_length', 'threads_created'];
+  displayedColumns = ['weekday', 'active_users', 'post_count', 'edit_count', 'avg_post_length', 'threads_created'];
 
   constructor(private service: WeekdayStatsService, private stateService: GlobalFilterStateService) {}
   ngOnInit() {

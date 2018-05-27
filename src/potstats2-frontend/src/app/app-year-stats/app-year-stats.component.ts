@@ -11,7 +11,7 @@ import {GlobalFilterStateService} from "../global-filter-state.service";
 export class AppYearStatsComponent implements OnInit {
   dataSource: AppYearStatsDataSource;
 
-  displayedColumns = ['year', 'post_count', 'edit_count', 'avg_post_length', 'threads_created'];
+  displayedColumns = ['year', 'active_users', 'post_count', 'edit_count', 'avg_post_length', 'threads_created'];
 
   constructor(private service: YearStatsService, private stateService: GlobalFilterStateService) {}
   ngOnInit() {

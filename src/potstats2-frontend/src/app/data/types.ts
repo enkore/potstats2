@@ -27,7 +27,8 @@ export interface YearStats {
   post_count: number,
   edit_count: number,
   avg_post_length: number,
-  threads_created: number
+  threads_created: number,
+  active_users: number,
 }
 
 export interface WeekdayStats {
@@ -35,5 +36,6 @@ export interface WeekdayStats {
   post_count: number,
   edit_count: number,
   avg_post_length: number,
-  threads_created: number
+  threads_created: number,
+  active_users: number,
 }

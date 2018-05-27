@@ -24,25 +24,9 @@
           <mat-header-cell *matHeaderCellDef>Jahr</mat-header-cell>
           <mat-cell *matCellDef="let row">{{row.year}}</mat-cell>
         </ng-container>
-        <ng-container matColumnDef="active_users">
-          <mat-header-cell *matHeaderCellDef>Aktive User</mat-header-cell>
-          <mat-cell *matCellDef="let row">{{row.active_users}}</mat-cell>
-        </ng-container>
-        <ng-container matColumnDef="post_count">
-          <mat-header-cell *matHeaderCellDef>Posts</mat-header-cell>
-          <mat-cell *matCellDef="let row">{{row.post_count}}</mat-cell>
-        </ng-container>
-        <ng-container matColumnDef="edit_count">
-          <mat-header-cell *matHeaderCellDef>Edits</mat-header-cell>
-          <mat-cell *matCellDef="let row">{{row.edit_count}}</mat-cell>
-        </ng-container>
-        <ng-container matColumnDef="avg_post_length">
-          <mat-header-cell *matHeaderCellDef>Durchschnittliche Postlänge</mat-header-cell>
-          <mat-cell *matCellDef="let row">{{row.avg_post_length}}</mat-cell>
-        </ng-container>
-        <ng-container matColumnDef="threads_created">
-          <mat-header-cell *matHeaderCellDef>Threads erstellt</mat-header-cell>
-          <mat-cell *matCellDef="let row">{{row.threads_created}}</mat-cell>
+       <ng-container *ngFor="let col of selectableStats" [matColumnDef]="col.value">
+         <mat-header-cell *matHeaderCellDef>{{col.label}}</mat-header-cell>
+         <mat-cell *matCellDef="let row">{{row[col.value]}}</mat-cell>
         </ng-container>
         <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
         <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>

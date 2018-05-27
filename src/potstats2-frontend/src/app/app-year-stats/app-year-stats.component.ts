@@ -6,6 +6,7 @@ import {Observable} from "rxjs/internal/Observable";
 import {combineLatest, concat, map} from "rxjs/operators";
 import {MatSelect} from "@angular/material";
 import {of} from 'rxjs';
+import {Stats} from "../data/types";
 
 @Component({
   selector: 'app-year-stats',
@@ -17,10 +18,7 @@ export class AppYearStatsComponent implements OnInit {
   chartData: Observable<{}[]>;
   @ViewChild(MatSelect) statsSelect: MatSelect;
 
-  displayedColumns = ['year', 'active_users', 'post_count', 'edit_count', 'avg_post_length', 'threads_created'];
-  yLabel = 'Aktive User';
-
-  selectableStats: any[] = [
+  selectableStats: Stats[] = [
     {
       label: 'Aktive User',
       value: 'active_users',
@@ -42,6 +40,9 @@ export class AppYearStatsComponent implements OnInit {
       value: 'threads_created',
     },
   ];
+  displayedColumns = ['year'].concat(...this.selectableStats.map(stats => stats.value));
+  yLabel: string;
+
 
   selectedStats = this.selectableStats[0];
 
@@ -50,21 +51,20 @@ export class AppYearStatsComponent implements OnInit {
     this.dataSource = new AppYearStatsDataSource(this.service, this.stateService);
     const chartDataSource = this.dataSource.connect();
   this.chartData = chartDataSource.pipe(
-    combineLatest(of(this.selectableStats[0]).pipe(concat(this.statsSelect.valueChange)), (rows, selectedStats) => {
+    combineLatest(of(this.selectableStats[0]).pipe(concat(<Observable<Stats>>this.statsSelect.valueChange)), (rows, selectedStats) => {
       return {
         rows: rows,
-        selectedStats: <any>selectedStats
+        selectedStats: selectedStats
       }
     }),
       map(state => {
         this.yLabel = state.selectedStats.label;
-        const result = state.rows.map(row => {
+        return state.rows.map(row => {
           return {
-              name: row.year.toString(),
-              value: row[state.selectedStats.value],
+            name: row.year.toString(),
+            value: row[(<any>state.selectedStats).value],
           }
         });
-        return result;
       })
     );
   }

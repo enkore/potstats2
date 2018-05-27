@@ -1,3 +1,8 @@
+export interface Stats {
+  label: string,
+  value: string,
+}
+
 export interface User {
   name: string;
   uid: number;

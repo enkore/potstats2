@@ -270,6 +270,10 @@ def daily_stats():
     statistic = request_arg('statistic', str)
 
     cte = dal.aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).cte()
+    legal_statistics = list(cte.c.keys())
+    legal_statistics.remove('time')
+    if statistic not in legal_statistics:
+        raise APIError('Invalid statistic %r, choose from: %s' % (statistic, legal_statistics))
     query = session.query(cte.c.time, cte.c[statistic].label('statistic'))
     rows = query.all()
 

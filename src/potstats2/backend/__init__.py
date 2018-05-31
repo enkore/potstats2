@@ -1,4 +1,5 @@
 import configparser
+import datetime
 import json
 
 from flask import Flask, request, Response, url_for, g
@@ -253,6 +254,49 @@ app.route('/api/hourly-stats')(
 app.route('/api/year-over-year-stats')(
     time_segregated_stats(func.extract('year', Post.timestamp), 'year')
 )
+
+
+@app.route('/api/daily-stats')
+@cache_api_view
+def daily_stats():
+    """
+    Return daily stats for a given year, organized as time-series as required by ngx-charts
+    for e.g. a heat map (compare GitHub profiles).
+    """
+    session = get_session()
+
+    year = request_arg('year', int)
+    bid = request_arg('bid', int, default=None)
+    statistic = request_arg('statistic', str)
+
+    cte = dal.aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).cte()
+    query = session.query(cte.c.time, cte.c[statistic].label('statistic'))
+    rows = query.all()
+
+    start_date = datetime.date(year, 1, 1)
+    day = datetime.timedelta(days=1)
+
+    weekdays = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
+    series = [
+        dict(week=0, name='KW0', series=[])
+    ]
+
+    for row in rows:
+        day_of_year = row.time - 1  # Postgres doy is 1-365/366 (leap years have 366 days)
+        date = start_date + day_of_year * day
+        week_of_the_year = int(date.strftime('%W'))
+        if week_of_the_year == series[-1]['week'] + 1:
+            series.append(dict(week=week_of_the_year, name='KW%d' % week_of_the_year, series=[]))
+        else:
+            assert week_of_the_year == series[-1]['week'], \
+                'date %s week %d, last week is %d' % (date, week_of_the_year, series[-1]['week'])
+
+        series[-1]['series'].append(dict(name=weekdays[date.weekday()], value=row.statistic))
+
+    for s in series:
+        s.pop('week')
+
+    return json_response({'series': series})
 
 
 @app.route('/api/')

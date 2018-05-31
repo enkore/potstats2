@@ -1,9 +1,9 @@
 import {Component, OnInit} from '@angular/core';
-import {HourlyStatsService} from "../data/hourly-stats.service";
+import {DailyStatsService} from "../data/daily-stats.service";
 import {GlobalFilterStateService} from "../global-filter-state.service";
-import {AppHourlyStatsDataSource} from "./app-hourly-stats-data-source";
 import {Observable} from "rxjs/internal/Observable";
-import {MultiSeriesStat} from "../data/types";
+import {SeriesStats} from "../data/types";
+import {AppDailyStatsDataSource} from "./app-daily-stats-data-source";
 
 @Component({
   selector: 'app-app-hourly-stats',
@@ -12,14 +12,14 @@ import {MultiSeriesStat} from "../data/types";
 })
 export class AppHourlyStatsComponent implements OnInit {
 
-  statsSource: Observable<MultiSeriesStat[]>;
-  selectedValue = 'post_count';
+  statsSource: Observable<SeriesStats[]>;
 
-  constructor(private service: HourlyStatsService, private stateService: GlobalFilterStateService) {
+  constructor(private service: DailyStatsService, private stateService: GlobalFilterStateService) {
   }
 
   ngOnInit() {
-    const dataSource = new AppHourlyStatsDataSource(this.service, this.stateService);
+    const dataSource = new AppDailyStatsDataSource(this.service, this.stateService);
+    this.statsSource = dataSource.connect();
   }
 }
 

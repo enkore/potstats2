@@ -292,11 +292,8 @@ def daily_stats():
         day_of_year = row.time - 1  # Postgres doy is 1-365/366 (leap years have 366 days)
         date = start_date + day_of_year * day
         week_of_the_year = int(date.strftime('%W'))
-        if week_of_the_year == series[-1]['name'] + 1:
+        if week_of_the_year != series[-1]['name']:
             series.append(dict(name=week_of_the_year, series=week()))
-        else:
-            assert week_of_the_year == series[-1]['name'], \
-                'date %s week %d, last week is %d' % (date, week_of_the_year, series[-1]['name'])
 
         series[-1]['series'][date.weekday()]['value'] = row.statistic
 

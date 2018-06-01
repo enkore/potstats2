@@ -5,7 +5,7 @@ import json
 from flask import Flask, request, Response, url_for, g
 from sqlalchemy import func, desc, tuple_, column
 
-from ..db import Post, User, LinkType
+from ..db import Post, User, LinkType, Thread
 from .. import db, dal, config
 from .cache import cache_api_view, get_stats
 
@@ -44,6 +44,12 @@ class DatabaseAwareJsonEncoder(json.JSONEncoder):
             return {
                 'name': o.name,
                 'uid': o.uid,
+            }
+        if isinstance(o, Thread):
+            return {
+                'tid': o.tid,
+                'title': o.title,
+                'subtitle': o.subtitle,
             }
         if callable(getattr(o, 'to_json', None)):
             return o.to_json()
@@ -269,12 +275,28 @@ def daily_stats():
     bid = request_arg('bid', int, default=None)
     statistic = request_arg('statistic', str)
 
-    cte = dal.aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).cte()
+    cte = dal.aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).cte('agg_stats')
     legal_statistics = list(cte.c.keys())
     legal_statistics.remove('time')
     if statistic not in legal_statistics:
         raise APIError('Invalid statistic %r, choose from: %s' % (statistic, legal_statistics))
-    query = session.query(cte.c.time, cte.c[statistic].label('statistic'))
+
+    from ..db import Thread
+
+    threads_active_during_time = dal.apply_standard_filters(
+        session
+        .query(Thread, func.count(Post.pid).label('thread_post_count'))
+        .join(Post.thread)
+        .filter(func.extract('doy', Post.timestamp) == cte.c.time)
+        .group_by(Thread)
+        .order_by(desc('thread_post_count'))
+        .correlate(cte)
+    , year, bid).limit(5).subquery('tadt')
+
+    threads_column = session.query(func.json_agg(column('tadt'))).select_from(threads_active_during_time).label('active_threads')
+
+    query = session.query(cte.c.time, cte.c[statistic].label('statistic'), threads_column)
+
     rows = query.all()
 
     start_date = datetime.date(year, 1, 1)
@@ -296,6 +318,7 @@ def daily_stats():
             series.append(dict(name=week_of_the_year, series=week()))
 
         series[-1]['series'][date.weekday()]['value'] = row.statistic
+        series[-1]['series'][date.weekday()]['threads'] = row.active_threads
 
     if int(start_date.strftime('%W')) > 0:
         series.pop(0)

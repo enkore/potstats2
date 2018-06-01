@@ -285,18 +285,18 @@ def daily_stats():
         return [dict(name=weekdays[dow], value=0.0) for dow in range(7)]
 
     series = [
-        dict(week=0, name='KW0', series=week())
+        dict(name=0, series=week())
     ]
 
     for row in rows:
         day_of_year = row.time - 1  # Postgres doy is 1-365/366 (leap years have 366 days)
         date = start_date + day_of_year * day
         week_of_the_year = int(date.strftime('%W'))
-        if week_of_the_year == series[-1]['week'] + 1:
-            series.append(dict(week=week_of_the_year, name='KW%d' % week_of_the_year, series=week()))
+        if week_of_the_year == series[-1]['name'] + 1:
+            series.append(dict(name=week_of_the_year, series=week()))
         else:
-            assert week_of_the_year == series[-1]['week'], \
-                'date %s week %d, last week is %d' % (date, week_of_the_year, series[-1]['week'])
+            assert week_of_the_year == series[-1]['name'], \
+                'date %s week %d, last week is %d' % (date, week_of_the_year, series[-1]['name'])
 
         series[-1]['series'][date.weekday()]['value'] = row.statistic
 
@@ -313,7 +313,6 @@ def daily_stats():
     series[-1]['series'] = series[-1]['series'][:last_weekday + 1]
 
     for s in series:
-        s.pop('week')
         s['series'].reverse()
 
     return json_response({'series': series})

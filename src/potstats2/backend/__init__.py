@@ -280,9 +280,12 @@ def daily_stats():
     start_date = datetime.date(year, 1, 1)
     day = datetime.timedelta(days=1)
 
-    weekdays = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
+    def week():
+        weekdays = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
+        return [dict(name=weekdays[dow], value=0.0) for dow in range(7)]
+
     series = [
-        dict(week=0, name='KW0', series=[])
+        dict(week=0, name='KW0', series=week())
     ]
 
     for row in rows:
@@ -290,12 +293,21 @@ def daily_stats():
         date = start_date + day_of_year * day
         week_of_the_year = int(date.strftime('%W'))
         if week_of_the_year == series[-1]['week'] + 1:
-            series.append(dict(week=week_of_the_year, name='KW%d' % week_of_the_year, series=[]))
+            series.append(dict(week=week_of_the_year, name='KW%d' % week_of_the_year, series=week()))
         else:
             assert week_of_the_year == series[-1]['week'], \
                 'date %s week %d, last week is %d' % (date, week_of_the_year, series[-1]['week'])
 
-        series[-1]['series'].append(dict(name=weekdays[date.weekday()], value=row.statistic))
+        series[-1]['series'][date.weekday()]['value'] = row.statistic
+
+    # Trim first week to actual week length
+    first_weekday = start_date.weekday()
+    series[0]['series'] = series[0]['series'][first_weekday:]
+
+    # Trim last week to actual week length
+    # This assumes that there were result rows.
+    last_weekday = date.weekday()
+    series[-1]['series'] = series[-1]['series'][:last_weekday + 1]
 
     for s in series:
         s.pop('week')

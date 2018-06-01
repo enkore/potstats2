@@ -311,6 +311,7 @@ def daily_stats():
 
     for s in series:
         s.pop('week')
+        s['series'].reverse()
 
     return json_response({'series': series})
 

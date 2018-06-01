@@ -300,6 +300,9 @@ def daily_stats():
 
         series[-1]['series'][date.weekday()]['value'] = row.statistic
 
+    if int(start_date.strftime('%W')) > 0:
+        series.pop(0)
+
     # Trim first week to actual week length
     first_weekday = start_date.weekday()
     series[0]['series'] = series[0]['series'][first_weekday:]

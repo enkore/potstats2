@@ -247,9 +247,9 @@ app.route('/api/weekday-stats')(
     time_segregated_stats(func.to_char(Post.timestamp, 'ID'), 'weekday')
 )
 
-app.route('/api/hourly-stats')(
-    time_segregated_stats(func.to_char(Post.timestamp, 'WW:ID:HH24'), 'weekday_hour')
-)
+# app.route('/api/hourly-stats')(
+#    time_segregated_stats(func.to_char(Post.timestamp, 'WW:ID:HH24'), 'weekday_hour')
+# )
 
 app.route('/api/year-over-year-stats')(
     time_segregated_stats(func.extract('year', Post.timestamp), 'year')

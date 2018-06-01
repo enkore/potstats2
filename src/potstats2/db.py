@@ -172,10 +172,11 @@ class PseudoMaterializedView(Base):
     query: Query = None
 
     @classmethod
-    def refresh(cls, session: Session):
+    def refresh(cls, session: Session, query: Query = None):
         session.flush()
         session.query(cls).delete()
-        query = cls.query.with_session(session)
+        if not query:
+            query = cls.query.with_session(session)
         query_columns = [c['name'] for c in query.column_descriptions]
         stmt = insert(cls.__table__).from_select(query_columns, query)
         session.execute(stmt)

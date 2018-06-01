@@ -308,9 +308,9 @@ def daily_stats():
     series[0]['series'] = series[0]['series'][first_weekday:]
 
     # Trim last week to actual week length
-    # This assumes that there were result rows.
-    last_weekday = date.weekday()
-    series[-1]['series'] = series[-1]['series'][:last_weekday + 1]
+    if rows:
+        last_weekday = date.weekday()
+        series[-1]['series'] = series[-1]['series'][:last_weekday + 1]
 
     for s in series:
         s['series'].reverse()

@@ -301,7 +301,10 @@ def daily_stats():
             series.append(dict(name=week_of_the_year, series=week()))
 
         series[-1]['series'][date.weekday()]['value'] = row.statistic
-        series[-1]['series'][date.weekday()]['threads'] = row.active_threads
+        for t in row.active_threads:
+            t.pop('doy')
+        row.active_threads.sort(key=lambda t: t['thread_post_count'], reverse=True)
+        series[-1]['series'][date.weekday()]['threads'] = row.active_threads[:5]
 
     if int(start_date.strftime('%W')) > 0:
         series.pop(0)

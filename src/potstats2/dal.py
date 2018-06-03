@@ -190,12 +190,12 @@ def daily_aggregate_statistic(session, statistic, year, bid=None):
     Aggregate a specific statistic for each day in a given year.
 
     Result columns:
-    - time (day of year)
+    - day_of_year
     - statistic
     - active_threads: list of dicts of the most active threads (w.r.t. post count) of the day.
       Each dict consists of json_thread_columns (tid, [sub]title) plus "thread_post_count".
     """
-    cte = aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).cte('agg_stats')
+    cte = aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).subquery()
     legal_statistics = list(cte.c.keys())
     legal_statistics.remove('time')
     if statistic not in legal_statistics:
@@ -205,17 +205,20 @@ def daily_aggregate_statistic(session, statistic, year, bid=None):
 
     threads_active_during_time = apply_standard_filters(
         session
-            .query(*json_thread_columns, func.count(Post.pid).label('thread_post_count'))
+            .query(*json_thread_columns, func.count(Post.pid).label('thread_post_count'), func.extract('doy', Post.timestamp).label('doy'))
             .join(Post.thread)
-            .filter(func.extract('doy', Post.timestamp) == cte.c.time)
-            .group_by(*json_thread_columns)
+            .group_by(*json_thread_columns, 'doy')
             .order_by(desc('thread_post_count'))
-            .correlate(cte)
-        , year, bid).limit(5).subquery('tadt')
+        , year, bid).subquery('tadt')
 
-    threads_column = session.query(func.json_agg(column('tadt'))).select_from(threads_active_during_time).label('active_threads')
+    active_threads = session.query(threads_active_during_time.c.doy,
+                                   func.json_agg(column('tadt')).label('active_threads')).select_from(threads_active_during_time).group_by('doy').subquery()
 
-    return session.query(cte.c.time.label('day_of_year'), cte.c[statistic].label('statistic'), threads_column)
+    return (
+        session
+        .query(cte.c.time.label('day_of_year'), cte.c[statistic].label('statistic'), active_threads.c.active_threads)
+        .join(active_threads, active_threads.c.doy == cte.c.time)
+    )
 
 
 def boards(session, year=None):

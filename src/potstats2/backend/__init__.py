@@ -275,27 +275,10 @@ def daily_stats():
     bid = request_arg('bid', int, default=None)
     statistic = request_arg('statistic', str)
 
-    cte = dal.aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).cte('agg_stats')
-    legal_statistics = list(cte.c.keys())
-    legal_statistics.remove('time')
-    if statistic not in legal_statistics:
-        raise APIError('Invalid statistic %r, choose from: %s' % (statistic, legal_statistics))
-
-    from ..db import Thread
-
-    threads_active_during_time = dal.apply_standard_filters(
-        session
-        .query(Thread, func.count(Post.pid).label('thread_post_count'))
-        .join(Post.thread)
-        .filter(func.extract('doy', Post.timestamp) == cte.c.time)
-        .group_by(Thread)
-        .order_by(desc('thread_post_count'))
-        .correlate(cte)
-    , year, bid).limit(5).subquery('tadt')
-
-    threads_column = session.query(func.json_agg(column('tadt'))).select_from(threads_active_during_time).label('active_threads')
-
-    query = session.query(cte.c.time, cte.c[statistic].label('statistic'), threads_column)
+    try:
+        query = dal.daily_aggregate_statistic(session, statistic, year, bid)
+    except dal.DalParameterError as dpe:
+        raise APIError(str(dpe))
 
     rows = query.all()
 

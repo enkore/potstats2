@@ -1,11 +1,18 @@
 from datetime import datetime
 from functools import partial
-from sqlalchemy import func, cast, Float, desc
-from sqlalchemy.orm import with_expression, aliased
+from sqlalchemy import func, cast, Float, desc, column
+from sqlalchemy.orm import aliased
 
 from .db import User, Board, Thread, Post
 from .db import PostQuotes
 from .db import LinkRelation
+
+
+class DalParameterError(RuntimeError):
+    pass
+
+
+json_thread_columns = (Thread.tid, Thread.title, Thread.subtitle)
 
 
 def apply_year_filter(query, year=None):
@@ -176,6 +183,39 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
         .order_by(post_query.c.time)
     )
     return query
+
+
+def daily_aggregate_statistic(session, statistic, year, bid=None):
+    """
+    Aggregate a specific statistic for each day in a given year.
+
+    Result columns:
+    - time (day of year)
+    - statistic
+    - active_threads: list of dicts of the most active threads (w.r.t. post count) of the day.
+      Each dict consists of json_thread_columns (tid, [sub]title) plus "thread_post_count".
+    """
+    cte = aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).cte('agg_stats')
+    legal_statistics = list(cte.c.keys())
+    legal_statistics.remove('time')
+    if statistic not in legal_statistics:
+        raise DalParameterError('Invalid statistic %r, choose from: %s' % (statistic, legal_statistics))
+
+    json_thread_columns = (Thread.tid, Thread.title, Thread.subtitle)
+
+    threads_active_during_time = apply_standard_filters(
+        session
+            .query(*json_thread_columns, func.count(Post.pid).label('thread_post_count'))
+            .join(Post.thread)
+            .filter(func.extract('doy', Post.timestamp) == cte.c.time)
+            .group_by(*json_thread_columns)
+            .order_by(desc('thread_post_count'))
+            .correlate(cte)
+        , year, bid).limit(5).subquery('tadt')
+
+    threads_column = session.query(func.json_agg(column('tadt'))).select_from(threads_active_during_time).label('active_threads')
+
+    return session.query(cte.c.time, cte.c[statistic].label('statistic'), threads_column)
 
 
 def boards(session, year=None):

@@ -215,7 +215,7 @@ def daily_aggregate_statistic(session, statistic, year, bid=None):
 
     threads_column = session.query(func.json_agg(column('tadt'))).select_from(threads_active_during_time).label('active_threads')
 
-    return session.query(cte.c.time, cte.c[statistic].label('statistic'), threads_column)
+    return session.query(cte.c.time.label('day_of_year'), cte.c[statistic].label('statistic'), threads_column)
 
 
 def boards(session, year=None):

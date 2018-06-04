@@ -1,6 +1,6 @@
 from datetime import datetime
 from functools import partial
-from sqlalchemy import func, cast, Float, desc, column, tuple_
+from sqlalchemy import func, cast, Float, desc, column, tuple_, Integer
 from sqlalchemy.orm import aliased
 
 from .db import User, Board, Thread, Post
@@ -69,7 +69,7 @@ def poster_stats(session, year, bid):
             User.uid,
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
-            cast(func.avg(func.length(Post.content)), Float).label('avg_post_length'),
+            cast(func.avg(func.length(Post.content)), Integer).label('avg_post_length'),
         )
         .join(Post.poster)
     ).group_by(User.uid).subquery()
@@ -137,7 +137,7 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
         .query(
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
-            cast(func.avg(func.length(Post.content)), Float).label('avg_post_length'),
+            cast(func.avg(func.length(Post.content)), Integer).label('avg_post_length'),
             time_column_expression.label('time')
         )
         .group_by('time')

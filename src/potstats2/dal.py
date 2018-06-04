@@ -107,6 +107,7 @@ def poster_stats(session, year, bid):
         .outerjoin(quoted_stats, quoted_stats.c.uid == User.uid)
         .outerjoin(quotes_stats, quotes_stats.c.uid == User.uid)
         .join(post_stats, post_stats.c.uid == User.uid)
+        .filter(post_stats.c.post_count >= 25)
     )
 
     return query

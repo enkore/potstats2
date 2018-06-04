@@ -1,6 +1,8 @@
 from time import perf_counter
 
 from click._termui_impl import ProgressBar
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql.expression import Executable, ClauseElement, _literal_as_text
 
 
 class ElapsedProgressBar(ProgressBar):
@@ -44,3 +46,24 @@ def chunk_query(query, primary_key, chunk_size=1000):
         if row is None:
             break
         last_id = getattr(row, primary_key.name) if row else None
+
+
+class explain(Executable, ClauseElement):
+    def __init__(self, stmt, analyze=False):
+        self.statement = _literal_as_text(stmt)
+        self.analyze = analyze
+        # helps with INSERT statements
+        self.inline = getattr(stmt, 'inline', None)
+
+
+@compiles(explain, 'postgresql')
+def pg_explain(element, compiler, **kw):
+    text = "EXPLAIN "
+    if element.analyze:
+        text += "ANALYZE "
+    text += compiler.process(element.statement, **kw)
+    return text
+
+
+def explain_query(session, query):
+    return '\n'.join(s for s, in session.execute(explain(query, analyze=True)).fetchall())

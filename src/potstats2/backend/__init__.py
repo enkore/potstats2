@@ -303,7 +303,7 @@ def daily_stats():
         series[-1]['series'][date.weekday()]['value'] = row.statistic
         for t in row.active_threads:
             t.pop('doy')
-        row.active_threads.sort(key=lambda t: t['thread_post_count'], reverse=True)
+            t.pop('rank')
         series[-1]['series'][date.weekday()]['threads'] = row.active_threads[:5]
 
     if int(start_date.strftime('%W')) > 0:

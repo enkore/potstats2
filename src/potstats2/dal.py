@@ -1,6 +1,6 @@
 from datetime import datetime
 from functools import partial
-from sqlalchemy import func, cast, Float, desc, column
+from sqlalchemy import func, cast, Float, desc, column, tuple_
 from sqlalchemy.orm import aliased
 
 from .db import User, Board, Thread, Post
@@ -205,14 +205,27 @@ def daily_aggregate_statistic(session, statistic, year, bid=None):
 
     threads_active_during_time = apply_standard_filters(
         session
-            .query(*json_thread_columns, func.count(Post.pid).label('thread_post_count'), func.extract('doy', Post.timestamp).label('doy'))
+            .query(*json_thread_columns,
+                   func.count(Post.pid).label('thread_post_count'),
+                   func.extract('doy', Post.timestamp).label('doy'),
+                   func.row_number().over(
+                       partition_by=func.extract('doy', Post.timestamp),
+                       order_by=tuple_(desc(func.count(Post.pid)), Thread.tid)
+                   ).label('rank'))
             .join(Post.thread)
             .group_by(*json_thread_columns, 'doy')
             .order_by(desc('thread_post_count'))
         , year, bid).subquery('tadt')
 
-    active_threads = session.query(threads_active_during_time.c.doy,
-                                   func.json_agg(column('tadt')).label('active_threads')).select_from(threads_active_during_time).group_by('doy').subquery()
+    active_threads = (
+        session
+        .query(threads_active_during_time.c.doy,
+               func.json_agg(column('tadt')).label('active_threads'))
+        .select_from(threads_active_during_time)
+        .filter(threads_active_during_time.c.rank <= 5)
+        .group_by('doy')
+        .subquery()
+    )
 
     return (
         session

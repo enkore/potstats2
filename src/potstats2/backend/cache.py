@@ -133,15 +133,19 @@ def get_stats():
     return stats
 
 
+def invalidate():
+    if cache_db:
+        cache_db.flushdb()
+
+
 @click.group()
 def main():
     pass
 
 
-@main.command()
-def invalidate():
-    if cache_db:
-        cache_db.flushdb()
+@main.command(name='invalidate')
+def _invalidate():
+    invalidate()
 
 
 @main.command(name='stats')

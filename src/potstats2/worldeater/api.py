@@ -78,6 +78,7 @@ class XmlApiConnector:
     def thread_tags(self, tid):
         response = self.session.get(self.api_url + 'thread.php', params=dict(TID=str(tid)))
         self.num_requests += 1
+        time.sleep(self.request_delay)
 
         begin_tags_section = b"<form action='thread.php?TID=%d&set_thread_groups=1' method='post'>" % tid
         offset = response.content.find(begin_tags_section)

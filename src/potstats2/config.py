@@ -11,7 +11,7 @@ Setting = namedtuple('Setting', 'description default')
 SETTINGS = {
     'DB': Setting('Database url, see https://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls',
                   'postgresql://localhost/potstats2'),
-    'REQUEST_DELAY': Setting('Delay between requests, not including request processing time.', '0.05'),
+    'REQUEST_DELAY': Setting('Delay between requests, not including request processing time.', '0.1'),
     'DEBUG': Setting('Enable post-mortem debugging', 'True'),
     'REDIS_URL': Setting('URL for accessing a Redis cache server, '
                          'see http://redis-py.readthedocs.io/en/latest/index.html?highlight=from_url#redis.ConnectionPool.from_url', None),

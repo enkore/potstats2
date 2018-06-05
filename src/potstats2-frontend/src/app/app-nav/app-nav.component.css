@@ -3,6 +3,6 @@
 }
 
 .sidenav {
-  width: 200px;
+  width: 216px; /* form fields are 180 px wide + 2*18 px margins */
   box-shadow: 3px 0 6px rgba(0,0,0,.24);
 }

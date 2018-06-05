@@ -119,14 +119,15 @@ def process_threads_needing_update(api, session):
     est_post_count, = session.query(func.sum(WorldeaterThreadsNeedingUpdate.est_number_of_posts)).one()
     print('%d threads need an update with up to %d new posts.' % (count, est_post_count))
     with ElapsedProgressBar(length=est_post_count, show_pos=True, label='Merging updated posts') as bar:
-        for tid, start_page, estimated_number_of_posts in session.query(WorldeaterThreadsNeedingUpdate).all():
-            dbthread = session.query(Thread).get(tid)
-            num_merged_posts = merge_pages(api, session, dbthread, start_page)
+        for tnu in session.query(WorldeaterThreadsNeedingUpdate).all():
+            dbthread = session.query(Thread).get(tnu.tid)
+            num_merged_posts = merge_pages(api, session, dbthread, tnu.start_page)
             if num_merged_posts:  # ProgressBar.update doesn't like zero.
                 bar.update(num_merged_posts)
             dbthread.first_post = session.query(Post).filter(Post.tid == dbthread.tid).order_by(Post.pid).first()
             if dbthread.can_be_complete:
                 dbthread.is_complete = True
+            session.delete(tnu)
             session.commit()
 
 

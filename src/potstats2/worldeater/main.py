@@ -115,7 +115,6 @@ def process_threads_needing_update(api, session):
     count, = session.query(func.count(WorldeaterThreadsNeedingUpdate.tid)).one()
     if not count:
         return
-    print(count)
     est_post_count, = session.query(func.sum(WorldeaterThreadsNeedingUpdate.est_number_of_posts)).one()
     print('%d threads need an update with up to %d new posts.' % (count, est_post_count))
     with ElapsedProgressBar(length=est_post_count, show_pos=True, label='Merging updated posts') as bar:
@@ -131,24 +130,7 @@ def process_threads_needing_update(api, session):
             session.commit()
 
 
-@click.command()
-@click.option('--board-id', default=53)
-def main(board_id):
-    setup_debugger()
-    print('nomnomnom')
-    t0 = perf_counter()
-    api = XmlApiConnector()
-    session = get_session()
-
-    initial_post_count, = session.query(func.count(Post.pid)).one()
-    initial_thread_count, = session.query(func.count(Thread.tid)).one()
-
-    process_threads_needing_update(api, session)
-
-    categories = sync_categories(api, session)
-    sync_boards(session, categories)
-
-    bid = board_id  # pot 14 is love, pot is life
+def process_board(api, session, bid):
     board = api.board(bid)
 
     initial_pass = not session.query(func.count(Thread.tid)).join(Thread.board).filter(Board.bid == bid)[0][0]
@@ -157,11 +139,13 @@ def main(board_id):
     if initial_pass:
         print('Initial pass on this board.')
     else:
-        newest_complete_thread = session.query(Thread).filter_by(is_complete=True, bid=bid).join(Thread.last_post).order_by(desc(Post.pid)).first()
+        newest_complete_thread = session.query(Thread).filter_by(is_complete=True, bid=bid).join(
+            Thread.last_post).order_by(desc(Post.pid)).first()
         if newest_complete_thread:
             # This is an easy shortcut that mostly works because Sammelthreads.
             newest_complete_tid = newest_complete_thread.tid
-            print('Update pass on this board. Fixpoint thread is TID %d (%s).' % (newest_complete_tid, newest_complete_thread.title))
+            print('Update pass on this board. Fixpoint thread is TID %d (%s).' % (
+            newest_complete_tid, newest_complete_thread.title))
 
     thread_set = set()
 
@@ -186,7 +170,8 @@ def main(board_id):
                 merge_posts(session, dbthread, posts)
                 pids = [int(post.attrib['id']) for post in posts]
                 last_on_page = pids[-1] == dbthread.last_post.pid
-                last_page = int(thread.find('./number-of-pages').attrib['value']) == int(thread.find('./posts').attrib['page'])
+                last_page = int(thread.find('./number-of-pages').attrib['value']) == int(
+                    thread.find('./posts').attrib['page'])
 
                 if last_on_page and (last_page or len(posts) < 30):
                     # Up to date on this thread if the last post we have is the last post on its page
@@ -219,7 +204,29 @@ def main(board_id):
             session.add(tnu)
 
     session.commit()
+
+
+@click.command()
+@click.option('--board-id', default=53)
+@click.option('--only-tnu', default=False, is_flag=True)
+def main(board_id, only_tnu):
+    setup_debugger()
+    print('nomnomnom')
+    t0 = perf_counter()
+    api = XmlApiConnector()
+    session = get_session()
+
+    initial_post_count, = session.query(func.count(Post.pid)).one()
+    initial_thread_count, = session.query(func.count(Thread.tid)).one()
+
     process_threads_needing_update(api, session)
+    if not only_tnu:
+        categories = sync_categories(api, session)
+        sync_boards(session, categories)
+
+        process_board(api, session, board_id)
+
+        process_threads_needing_update(api, session)
 
     ws = WorldeaterState.get(session)
     ws.num_api_requests += api.num_requests

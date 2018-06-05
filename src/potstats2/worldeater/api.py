@@ -122,7 +122,7 @@ class XmlApiConnector:
         while page >= 0:
             board = self.board(bid, page)
             threads = board.findall('./threads/thread')
-            assert not (len(threads) == 30 and last_page), 'Last page was not actually the last page (%d)' % last_page
+            assert not (len(threads) == 30 and page == last_page), 'Last page was not actually the last page (%d)' % last_page
             yield from threads
             page -= 1
 

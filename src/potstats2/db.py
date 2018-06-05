@@ -150,6 +150,8 @@ class Post(Base):
     last_edit_uid = Column(Integer, ForeignKey('users.uid'), nullable=True)
     last_edit_timestamp = Column(TIMESTAMP, nullable=True)
 
+    is_hidden = Column(Boolean)
+
     title = Column(Unicode)
     content = Column(UnicodeText)
 

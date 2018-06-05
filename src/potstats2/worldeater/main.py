@@ -68,6 +68,13 @@ def merge_posts(session, dbthread, posts):
             dbpost.last_edit_timestamp = datetime_from_xml(edited.find('./lastedit/date'))
         dbpost.title = post.find('./message/title').text
         dbpost.content = post.find('./message/content').text
+
+        is_hidden = post.attrib.get('is-hidden', '')
+        if is_hidden:
+            dbpost.is_hidden = True
+            if is_hidden != 'texthidden':
+                print('PID %d: Unknown value %r for attribute is-hidden.' % (pid, is_hidden))
+
         session.add(dbpost)
     if post and dbpost.pid > (dbthread.last_pid or 0):
         dbthread.last_post = dbpost

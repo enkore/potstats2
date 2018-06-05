@@ -85,18 +85,26 @@ class XmlApiConnector:
         while True:
             board = self.board(bid, page)
             threads = board.findall('./threads/thread')
-            yield from threads
-            if len(threads) < 30 or (oldest_tid and board.find('./threads/thread[@id=\'%s\']' % oldest_tid)):
-                # last page or oldest thread processed that we've wanted
-                break
+            if oldest_tid:
+                ot = board.find('./threads/thread[@id=\'%s\']' % oldest_tid)
+                if ot:
+                    threads = threads[:threads.index(ot)]
+                    yield from threads
+                    break
+            else:
+                yield from threads
+                if len(threads) < 30:
+                    # last page
+                    break
             page += 1
 
     def _iter_board_rev(self, bid):
         board = self.board(bid)
-        page = meth.ceil((int(board.find('./number-of-threads').attrib['value']) + 1) / 30)
+        last_page = page = meth.ceil((int(board.find('./number-of-threads').attrib['value']) + 1) / 30)
         while page >= 0:
             board = self.board(bid, page)
             threads = board.findall('./threads/thread')
+            assert not (len(threads) == 30 and last_page), 'Last page was not actually the last page (%d)' % last_page
             yield from threads
             page -= 1
 

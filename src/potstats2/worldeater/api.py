@@ -98,7 +98,7 @@ class XmlApiConnector:
     def iter_board(self, bid, oldest_tid=None, reverse=False):
         if reverse:
             assert not oldest_tid
-            return self._iter_board_rev(bid)
+            yield from self._iter_board_rev(bid)
         page = 0
         while True:
             board = self.board(bid, page)

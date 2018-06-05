@@ -162,7 +162,7 @@ def main(board_id):
             newest_complete_tid = newest_complete_thread.tid
             print('Update pass on this board. Fixpoint thread is TID %d (%s).' % (newest_complete_tid, newest_complete_thread.title))
 
-    thread_set = []
+    thread_set = set()
 
     with ElapsedProgressBar(length=int(board.find('./number-of-threads').attrib['value']),
                             show_pos=True, label='Syncing threads') as bar:
@@ -170,7 +170,7 @@ def main(board_id):
             dbthread = thread_from_xml(session, thread)
             set_attribute(dbthread, 'tags', api.thread_tags(dbthread.tid))
             session.add(dbthread)
-            thread_set.append(dbthread)
+            thread_set.add(dbthread)
             bar.update(1)
         session.commit()
 

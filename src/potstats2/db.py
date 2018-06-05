@@ -105,6 +105,9 @@ class Board(Base):
 
 class Thread(Base):
     __tablename__ = 'threads'
+    __table_args__ = (
+        CheckConstraint('(is_closed and not is_sticky and not is_global) or not is_complete', name='complete_requires_closed'),
+    )
 
     tid = bb_id_column()
     bid = Column(Integer, ForeignKey('boards.bid'))
@@ -131,6 +134,12 @@ class Thread(Base):
     board = relationship('Board', backref='threads')
     first_post = relationship('Post', foreign_keys=first_pid, post_update=True)
     last_post = relationship('Post', foreign_keys=last_pid, post_update=True)
+
+    is_complete = Column(Boolean)
+
+    @property
+    def can_be_complete(self):
+        return self.is_closed and not self.is_sticky and not self.is_global
 
 
 class Post(Base):
@@ -211,6 +220,16 @@ class WorldeaterState(Base):
             state = WorldeaterState()
             session.add(state)
         return state
+
+
+class WorldeaterThreadsNeedingUpdate(Base):
+    __tablename__ = 'worldeater_tnu'
+
+    tid = Column(Integer, ForeignKey('threads.tid'), primary_key=True)
+    start_page = Column(Integer)
+    est_number_of_posts = Column(Integer)
+
+    thread = relationship('Thread')
 
 
 class PostQuotes(Base):

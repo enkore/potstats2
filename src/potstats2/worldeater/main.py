@@ -2,12 +2,11 @@ from time import perf_counter
 from datetime import datetime, timezone
 
 import click
-from sqlalchemy import func
-
+from sqlalchemy import func, desc
 
 from .api import XmlApiConnector
 from ..config import setup_debugger
-from ..db import get_session, Category, Board, Thread, Post, User, WorldeaterState
+from ..db import get_session, Category, Board, Thread, Post, User, WorldeaterState, WorldeaterThreadsNeedingUpdate
 from ..util import ElapsedProgressBar
 from ..backend import cache
 
@@ -111,6 +110,25 @@ def thread_from_xml(session, thread):
     return dbthread
 
 
+def process_threads_needing_update(api, session):
+    count, = session.query(func.count(WorldeaterThreadsNeedingUpdate.tid)).one()
+    if not count:
+        return
+    print(count)
+    est_post_count, = session.query(func.sum(WorldeaterThreadsNeedingUpdate.est_number_of_posts)).one()
+    print('%d threads need an update with up to %d new posts.' % (count, est_post_count))
+    with ElapsedProgressBar(length=est_post_count, show_pos=True, label='Merging updated posts') as bar:
+        for tid, start_page, estimated_number_of_posts in session.query(WorldeaterThreadsNeedingUpdate).all():
+            dbthread = session.query(Thread).get(tid)
+            num_merged_posts = merge_pages(api, session, dbthread, start_page)
+            if num_merged_posts:  # ProgressBar.update doesn't like zero.
+                bar.update(num_merged_posts)
+            dbthread.first_post = session.query(Post).filter(Post.tid == dbthread.tid).order_by(Post.pid).first()
+            if dbthread.can_be_complete:
+                dbthread.is_complete = True
+            session.commit()
+
+
 @click.command()
 @click.option('--board-id', default=53)
 def main(board_id):
@@ -120,43 +138,44 @@ def main(board_id):
     api = XmlApiConnector()
     session = get_session()
 
-    (initial_post_count,), = session.query(func.count(Post.pid))
-    (initial_thread_count,), = session.query(func.count(Thread.tid))
+    initial_post_count, = session.query(func.count(Post.pid)).one()
+    initial_thread_count, = session.query(func.count(Thread.tid)).one()
+
+    process_threads_needing_update(api, session)
 
     categories = sync_categories(api, session)
     sync_boards(session, categories)
 
-    # I'd be cool to just have the PID in the minified XML:post, but oh well.
-    # _, latest_post_thread = max((int(post.find('date').attrib['timestamp']), post.find('in-thread'))
-    #                            for post in categories.findall('.//post'))
-    # print('Newest post in TID %s [%s]' % (latest_post_thread.attrib['id'], latest_post_thread.text))
-
     bid = board_id  # pot 14 is love, pot is life
     board = api.board(bid)
 
-    # This is incorrect, because we are working from newest to oldest
-    newest_complete_thread = session.query(Thread).filter_by(is_closed=True).order_by(Thread.tid).first()
-    if newest_complete_thread:
-        # This is an easy shortcut that mostly works because Sammelthreads.
-        newest_complete_tid = newest_complete_thread.tid
-    else:
-        ...
+    initial_pass = not session.query(func.count(Thread.tid)).join(Thread.board).filter(Board.bid == bid)[0][0]
+
     newest_complete_tid = None
+    if initial_pass:
+        print('Initial pass on this board.')
+    else:
+        newest_complete_thread = session.query(Thread).filter_by(is_complete=True, bid=bid).join(Thread.last_post).order_by(desc(Post.pid)).first()
+        if newest_complete_thread:
+            # This is an easy shortcut that mostly works because Sammelthreads.
+            newest_complete_tid = newest_complete_thread.tid
+            print('Update pass on this board. Fixpoint thread is TID %d (%s).' % (newest_complete_tid, newest_complete_thread.title))
+
+    thread_set = []
 
     with ElapsedProgressBar(length=int(board.find('./number-of-threads').attrib['value']),
                             show_pos=True, label='Syncing threads') as bar:
-        for thread in api.iter_board(bid, oldest_tid=newest_complete_tid):
+        for thread in api.iter_board(bid, oldest_tid=newest_complete_tid, reverse=initial_pass):
             dbthread = thread_from_xml(session, thread)
             session.add(dbthread)
+            thread_set.append(dbthread)
             bar.update(1)
         session.commit()
 
-    # Possibly put this in the DB to checkpoint
-    threads_needing_update = {}  # TID --> (start_page, number_of_posts_estimated)
-
-    with ElapsedProgressBar(session.query(Thread).filter_by(bid=bid).all(),
+    with ElapsedProgressBar(thread_set,
                             show_pos=True, label='Finding updated threads') as bar:
         for dbthread in bar:
+            tnu = WorldeaterThreadsNeedingUpdate(thread=dbthread)
             if dbthread.last_post:
                 thread = api.thread(dbthread.tid, pid=dbthread.last_post.pid)
                 # Might advance dbthread.last_post to the last post on this page
@@ -179,6 +198,8 @@ def main(board_id):
                     # if we are already on the last *real* page which is not full.
                     # If the stars align just right we'll always think a thread has some new posts and we will
                     # never be able to tell it doesn't.
+                    if dbthread.can_be_complete:
+                        dbthread.is_complete = True
                     continue
 
                 index_in_page = pids.index(dbthread.last_post.pid)
@@ -186,29 +207,24 @@ def main(board_id):
                 num_replies = int(thread.find('./number-of-replies').attrib['value'])
                 # Due to XML:number-of-replies inaccuracy this might become negative
                 estimated_number_of_posts = max(0, num_replies - index_in_thread)
-                threads_needing_update[dbthread.tid] = (int(thread.find('./posts').attrib['page']) + 1,
-                                                        estimated_number_of_posts)
-            else:
-                threads_needing_update[dbthread.tid] = (0,
-                                                        dbthread.est_number_of_replies)
 
-    total_posts = sum(nope for sp, nope in threads_needing_update.values())
-    with ElapsedProgressBar(length=total_posts, show_pos=True, label='Merging updated posts') as bar:
-        for tid, (start_page, estimated_number_of_posts) in threads_needing_update.items():
-            dbthread = session.query(Thread).get(tid)
-            num_merged_posts = merge_pages(api, session, dbthread, start_page)
-            if num_merged_posts:  # ProgressBar.update doesn't like zero.
-                bar.update(num_merged_posts)
-            dbthread.first_post = session.query(Post).filter(Post.tid == dbthread.tid).order_by(Post.pid).first()
-            session.commit()
+                tnu.start_page = int(thread.find('./posts').attrib['page']) + 1
+                tnu.est_number_of_posts = estimated_number_of_posts
+            else:
+                tnu.start_page = 0
+                tnu.est_number_of_posts = dbthread.est_number_of_replies
+            session.add(tnu)
+
+    session.commit()
+    process_threads_needing_update(api, session)
 
     ws = WorldeaterState.get(session)
     ws.num_api_requests += api.num_requests
     nomnom_time = perf_counter() - t0
     ws.nomnom_time += int(nomnom_time)
 
-    (added_posts,), = session.query(func.count(Post.pid) - initial_post_count)
-    (added_threads,), = session.query(func.count(Thread.tid) - initial_thread_count)
+    added_posts, = session.query(func.count(Post.pid) - initial_post_count).one()
+    added_threads, = session.query(func.count(Thread.tid) - initial_thread_count).one()
 
     print('Statistics')
     print('----------------------> this session <--------------> total <---')

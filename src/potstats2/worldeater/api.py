@@ -1,3 +1,4 @@
+import math as meth
 import time
 # WARNING: The xml.etree.ElementTree module is not secure
 # against maliciously constructed data.
@@ -76,7 +77,10 @@ class XmlApiConnector:
 
     # generators
 
-    def iter_board(self, bid, oldest_tid=None):
+    def iter_board(self, bid, oldest_tid=None, reverse=False):
+        if reverse:
+            assert not oldest_tid
+            return self._iter_board_rev(bid)
         page = 0
         while True:
             board = self.board(bid, page)
@@ -86,6 +90,15 @@ class XmlApiConnector:
                 # last page or oldest thread processed that we've wanted
                 break
             page += 1
+
+    def _iter_board_rev(self, bid):
+        board = self.board(bid)
+        page = meth.ceil((int(board.find('./number-of-threads').attrib['value']) + 1) / 30)
+        while page >= 0:
+            board = self.board(bid, page)
+            threads = board.findall('./threads/thread')
+            yield from threads
+            page -= 1
 
     def iter_thread(self, tid, start_page=0):
         page = start_page

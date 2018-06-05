@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import click
 from sqlalchemy import func, desc
+from sqlalchemy.orm.attributes import set_attribute
 
 from .api import XmlApiConnector
 from ..config import setup_debugger
@@ -167,6 +168,7 @@ def main(board_id):
                             show_pos=True, label='Syncing threads') as bar:
         for thread in api.iter_board(bid, oldest_tid=newest_complete_tid, reverse=initial_pass):
             dbthread = thread_from_xml(session, thread)
+            set_attribute(dbthread, 'tags', api.thread_tags(dbthread.tid))
             session.add(dbthread)
             thread_set.append(dbthread)
             bar.update(1)

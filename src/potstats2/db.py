@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, Unic
     CheckConstraint, func, Enum
 from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression, aliased
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.dialects.postgresql import insert, JSONB
 
 import click
 
@@ -134,6 +134,8 @@ class Thread(Base):
     board = relationship('Board', backref='threads')
     first_post = relationship('Post', foreign_keys=first_pid, post_update=True)
     last_post = relationship('Post', foreign_keys=last_pid, post_update=True)
+
+    tags = Column(JSONB)
 
     is_complete = Column(Boolean)
 

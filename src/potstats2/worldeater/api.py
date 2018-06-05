@@ -75,6 +75,23 @@ class XmlApiConnector:
             raise InvalidThreadError(tid)
         return thread
 
+    def thread_tags(self, tid):
+        response = self.session.get(self.api_url + 'thread.php', params=dict(TID=str(tid)))
+        self.num_requests += 1
+
+        begin_tags_section = b"<form action='thread.php?TID=%d&set_thread_groups=1' method='post'>" % tid
+        offset = response.content.find(begin_tags_section)
+        if offset == -1:
+            return []
+        end_tags_section = response.content.index(b'</form>', offset) + 7
+        tags_section = response.content[offset:end_tags_section].replace(b'&', b'&amp;').decode('ISO-8859-15')
+        re = ET.fromstring(tags_section)
+
+        tags = []
+        for tag in re.findall('.//a'):
+            tags.append(tag.text)
+        return tags
+
     # generators
 
     def iter_board(self, bid, oldest_tid=None, reverse=False):

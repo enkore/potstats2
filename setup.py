@@ -51,7 +51,7 @@ setup(
             'potstats2-worldeater = potstats2.worldeater.main:main',
             'potstats2-db = potstats2.db:main',
             'potstats2-backend-dev = potstats2.backend:main',
-            'potstats2-invalidate-cache = potstats2.backend.cache:invalidate',
+            'potstats2-cache = potstats2.backend.cache:main',
             'potstats2-analytics = potstats2.analytics:main',
         ],
     },

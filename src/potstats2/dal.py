@@ -193,7 +193,7 @@ def daily_aggregate_statistic(session, statistic, year, bid=None):
     Result columns:
     - day_of_year
     - statistic
-    - active_threads: list of dicts of the most active threads (w.r.t. post count) of the day.
+    - extra.active_threads: list of dicts of the most active threads (w.r.t. post count) of the day.
       Each dict consists of json_thread_columns (tid, [sub]title) plus "thread_post_count".
     """
     cte = aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).subquery()

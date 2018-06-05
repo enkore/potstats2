@@ -10,6 +10,7 @@ try:
 except ImportError:
     redis = None
 
+import click
 from flask import Request, Response, request, current_app
 
 import potstats2
@@ -109,23 +110,19 @@ if stats_db:
     request_finished.connect(observe_request_finished)
 
 
-def invalidate():
-    if cache_db:
-        cache_db.flushdb()
-
-
 def get_stats():
-    nested_dict = lambda: collections.defaultdict(nested_dict)
-
-    stats = nested_dict()
-    stats['version'] = potstats2.__version__
+    stats = dict(version=potstats2.__version__)
     if stats_db:
         for key in stats_db.keys('*'):
             key = key.decode()
             parts = key.split('/')
             insert_into = stats
             for part in parts[:-1]:
-                insert_into = insert_into[part]
+                try:
+                    insert_into = insert_into[part]
+                except KeyError:
+                    # Hint: Python multissignment is right-to-left
+                    insert_into[part] = insert_into = {}
 
             v = stats_db.get(key).decode()
             try:
@@ -134,3 +131,20 @@ def get_stats():
                 pass
             insert_into[parts[-1]] = v
     return stats
+
+
+@click.group()
+def main():
+    pass
+
+
+@main.command()
+def invalidate():
+    if cache_db:
+        cache_db.flushdb()
+
+
+@main.command(name='stats')
+def _stats():
+    import json
+    print(json.dumps(get_stats(), indent=4))

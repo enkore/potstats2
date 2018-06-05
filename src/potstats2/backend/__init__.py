@@ -304,7 +304,7 @@ def daily_stats():
         for t in row.active_threads:
             t.pop('doy')
             t.pop('rank')
-        series[-1]['series'][date.weekday()]['threads'] = row.active_threads[:5]
+        series[-1]['series'][date.weekday()]['extra'] = dict(active_threads=row.active_threads[:5])
 
     if int(start_date.strftime('%W')) > 0:
         series.pop(0)

@@ -2,6 +2,7 @@ from time import perf_counter
 from datetime import datetime, timezone
 
 import click
+from sqlalchemy import func
 
 
 from .api import XmlApiConnector
@@ -119,6 +120,9 @@ def main(board_id):
     api = XmlApiConnector()
     session = get_session()
 
+    (initial_post_count,), = session.query(func.count(Post.pid))
+    (initial_thread_count,), = session.query(func.count(Thread.tid))
+
     categories = sync_categories(api, session)
     sync_boards(session, categories)
 
@@ -203,10 +207,15 @@ def main(board_id):
     nomnom_time = perf_counter() - t0
     ws.nomnom_time += int(nomnom_time)
 
+    (added_posts,), = session.query(func.count(Post.pid) - initial_post_count)
+    (added_threads,), = session.query(func.count(Thread.tid) - initial_thread_count)
+
     print('Statistics')
-    print('----------------------> this session <-------> total <---')
-    print('API requests            {:12d}           {:5d}'.format(api.num_requests, ws.num_api_requests))
-    print('Nomnom time             {:12.0f}           {:5d}'.format(nomnom_time, ws.nomnom_time))
+    print('----------------------> this session <--------------> total <---')
+    print('API requests            {:12d}           {:12d}'.format(api.num_requests, ws.num_api_requests))
+    print('Nomnom time             {:12.0f}           {:12d}'.format(nomnom_time, ws.nomnom_time))
+    print('Added posts             {:12d}           {:12d}'.format(added_posts, initial_post_count + added_posts))
+    print('Added threads           {:12d}           {:12d}'.format(added_threads, initial_thread_count + added_threads))
 
     session.commit()
     cache.invalidate()

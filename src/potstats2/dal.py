@@ -215,7 +215,6 @@ def daily_aggregate_statistic(session, statistic, year, bid=None):
                    ).label('rank'))
             .join(Post.thread)
             .group_by(*json_thread_columns, 'doy')
-            .order_by(desc('thread_post_count'))
         , year, bid).subquery('tadt')
 
     active_threads = (

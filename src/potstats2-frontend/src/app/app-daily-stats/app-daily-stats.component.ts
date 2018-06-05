@@ -36,7 +36,7 @@ export class AppDailyStatsComponent implements OnInit {
       value: 'avg_post_length',
     },
     {
-      label: 'Threads',
+      label: 'Threads erstellt',
       value: 'threads_created',
     },
   ];

@@ -16,7 +16,7 @@ import {
   MatToolbarModule
 } from '@angular/material';
 import {AppNavComponent} from './app-nav/app-nav.component';
-import {ImpressComponent} from './impress/impress.component';
+import {ImprintComponent} from './imprint/imprint.component';
 import {PrivacyComponent} from './privacy/privacy.component';
 import {RouterModule, Routes} from '@angular/router';
 import {AppPosterstatsComponent} from './app-poster-stats/app-posterstats.component';
@@ -39,14 +39,14 @@ const routes: Routes = [
   { path: 'weekday-stats', component: AppWeekdayStatsComponent},
   {path: 'daily-stats', component: AppDailyStatsComponent},
   { path: 'board-stats', component: AppBoardStatsComponent},
-  { path: 'impress', component: ImpressComponent },
+  { path: 'imprint', component: ImprintComponent },
   { path: 'privacy', component: PrivacyComponent }
 ];
 @NgModule({
   declarations: [
     AppComponent,
     AppNavComponent,
-    ImpressComponent,
+    ImprintComponent,
     PrivacyComponent,
     AppPosterstatsComponent,
     AppYearStatsComponent,

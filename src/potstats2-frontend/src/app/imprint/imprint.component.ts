@@ -2,10 +2,10 @@ import { Component, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-impressum',
-  templateUrl: './impress.component.html',
-  styleUrls: ['./impress.component.css']
+  templateUrl: './imprint.component.html',
+  styleUrls: ['./imprint.component.css']
 })
-export class ImpressComponent implements OnInit {
+export class ImprintComponent implements OnInit {
 
   constructor() { }
 

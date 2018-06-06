@@ -130,10 +130,11 @@ def process_threads_needing_update(api, session):
             session.commit()
 
 
-def process_board(api, session, bid):
+def process_board(api, session, bid, force_initial_pass):
     board = api.board(bid)
 
-    initial_pass = not session.query(func.count(Thread.tid)).join(Thread.board).filter(Board.bid == bid)[0][0]
+    initial_pass = not session.query(func.count(Thread.tid)).join(Thread.board).filter(Board.bid == bid)[0][0] \
+                   or force_initial_pass
 
     newest_complete_tid = None
     if initial_pass:
@@ -227,7 +228,8 @@ class StateTracker:
 @click.command()
 @click.option('--board-id', default=53)
 @click.option('--only-tnu', default=False, is_flag=True)
-def main(board_id, only_tnu):
+@click.option('--force-initial-pass', default=False, is_flag=True)
+def main(board_id, only_tnu, force_initial_pass):
     setup_debugger()
     print('nomnomnom')
     api = XmlApiConnector()
@@ -243,7 +245,7 @@ def main(board_id, only_tnu):
         categories = sync_categories(api, session)
         sync_boards(session, categories)
 
-        process_board(api, session, board_id)
+        process_board(api, session, board_id, force_initial_pass=force_initial_pass)
 
         process_threads_needing_update(api, session)
 

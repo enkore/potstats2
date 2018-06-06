@@ -99,6 +99,7 @@ class XmlApiConnector:
         if reverse:
             assert not oldest_tid
             yield from self._iter_board_rev(bid)
+            break
         page = 0
         while True:
             board = self.board(bid, page)

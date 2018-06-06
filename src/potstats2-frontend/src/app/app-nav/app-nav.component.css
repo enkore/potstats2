@@ -6,3 +6,26 @@
   width: 216px; /* form fields are 180 px wide + 2*18 px margins */
   box-shadow: 3px 0 6px rgba(0,0,0,.24);
 }
+
+#imprint-and-shit {
+
+}
+
+#imprint-and-shit {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0 16px;
+  color: grey;
+  font-size: 80%;
+}
+
+#imprint-and-shit a {
+  color: grey;
+}
+
+#imprint-and-shit a:hover,
+#imprint-and-shit a:active {
+  color: lightgrey;
+}

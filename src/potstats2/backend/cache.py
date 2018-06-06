@@ -67,6 +67,7 @@ def cache_api_view(view):
                     response.headers['Content-Length'] = response.content_length
                     response.headers['Vary'] = 'Accept-Encoding'
                 response.headers['ETag'] = etag
+                response.headers['Cache-Control'] = 'public, max-age=1000'
             return response
         else:
             if etag in request.headers.get('If-None-Match', ''):
@@ -82,6 +83,7 @@ def cache_api_view(view):
                 response.set_data(gzip.decompress(cached))
                 response.headers['Content-Length'] = response.content_length
             response.headers['ETag'] = etag
+            response.headers['Cache-Control'] = 'public, max-age=1000'
             return response
     return cache_frontend
 

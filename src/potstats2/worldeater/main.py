@@ -2,7 +2,7 @@ from time import perf_counter
 from datetime import datetime, timezone
 
 import click
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, event
 from sqlalchemy.orm.attributes import set_attribute
 
 from .api import XmlApiConnector
@@ -206,15 +206,34 @@ def process_board(api, session, bid):
     session.commit()
 
 
+class StateTracker:
+    def __init__(self, api, session):
+        self.api = api
+        self.session = session
+        self.ws = WorldeaterState.get(session)
+        self.t0 = perf_counter()
+        self.num_api_requests0 = 0
+        self.nomnom_time = 0
+
+    def update(self):
+        self.ws.num_api_requests += (self.api.num_requests - self.num_api_requests0)
+        self.num_api_requests0 = self.api.num_requests
+        t1 = perf_counter()
+        self.ws.nomnom_time += int(t1 - self.t0)
+        self.nomnom_time += t1 - self.t0
+        self.t0 = t1
+
+
 @click.command()
 @click.option('--board-id', default=53)
 @click.option('--only-tnu', default=False, is_flag=True)
 def main(board_id, only_tnu):
     setup_debugger()
     print('nomnomnom')
-    t0 = perf_counter()
     api = XmlApiConnector()
     session = get_session()
+    st = StateTracker(api, session)
+    event.listen(session, 'before_commit', lambda s: st.update())
 
     initial_post_count, = session.query(func.count(Post.pid)).one()
     initial_thread_count, = session.query(func.count(Thread.tid)).one()
@@ -228,18 +247,15 @@ def main(board_id, only_tnu):
 
         process_threads_needing_update(api, session)
 
-    ws = WorldeaterState.get(session)
-    ws.num_api_requests += api.num_requests
-    nomnom_time = perf_counter() - t0
-    ws.nomnom_time += int(nomnom_time)
+    st.update()
 
     added_posts, = session.query(func.count(Post.pid) - initial_post_count).one()
     added_threads, = session.query(func.count(Thread.tid) - initial_thread_count).one()
 
     print('Statistics')
     print('----------------------> this session <--------------> total <---')
-    print('API requests            {:12d}           {:12d}'.format(api.num_requests, ws.num_api_requests))
-    print('Nomnom time             {:12.0f}           {:12d}'.format(nomnom_time, ws.nomnom_time))
+    print('API requests            {:12d}           {:12d}'.format(api.num_requests, st.ws.num_api_requests))
+    print('Nomnom time             {:12.0f}           {:12d}'.format(st.nomnom_time, st.ws.nomnom_time))
     print('Added posts             {:12d}           {:12d}'.format(added_posts, initial_post_count + added_posts))
     print('Added threads           {:12d}           {:12d}'.format(added_threads, initial_thread_count + added_threads))
 

@@ -1,11 +1,12 @@
 from datetime import datetime
 from functools import partial
-from sqlalchemy import func, cast, Float, desc, column, tuple_, Integer
+from sqlalchemy import func, cast, Float, desc, column, tuple_, Integer, and_
 from sqlalchemy.orm import aliased
 
 from .db import User, Board, Thread, Post
 from .db import PostQuotes
 from .db import LinkRelation
+from .db import PosterStats
 
 
 class DalParameterError(RuntimeError):
@@ -42,7 +43,7 @@ def apply_standard_filters(query, year, bid):
     return apply_board_filter(apply_year_filter(query, year), bid)
 
 
-def poster_stats(session, year, bid):
+def poster_stats_agg(session, post_count_cutoff=25):
     """
     Statistics on posts and threads for each user.
 
@@ -52,64 +53,117 @@ def poster_stats(session, year, bid):
 
     Note: total length of all posts is post_count * avg_post_length.
     """
-    asf = partial(apply_standard_filters, year=year, bid=bid)
-    threads_opened = asf(
+    year = func.extract('year', Post.timestamp).label('year')
+    threads_opened = (
         session
         .query(
-            User.uid,
+            Post.poster_uid,
+            Thread.bid,
+            year,
             func.count(Thread.tid).label('threads_created'),
         )
-        .join(Post.poster)
         .join(Thread, Thread.first_pid == Post.pid)
-    ).group_by(User.uid).subquery()
+    ).group_by(year, Thread.bid, Post.poster_uid).subquery('threads_opened')
 
-    post_stats = asf(
+    post_stats = (
         session
         .query(
-            User.uid,
+            Thread.bid,
+            year,
+            Post.poster_uid,
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
             cast(func.avg(func.length(Post.content)), Integer).label('avg_post_length'),
         )
-        .join(Post.poster)
-    ).group_by(User.uid).subquery()
+        .join(Post.thread)
+    ).group_by(year, Thread.bid, Post.poster_uid).subquery('post_stats')
 
-    quoted_stats = asf(
+    quoted_stats = (
         session
         .query(
-            User.uid,
+            Thread.bid,
+            year,
+            Post.poster_uid,
             func.count(PostQuotes.count).label('quoted_count'),
         )
-        .join(Post.poster)
+        .join(Post.thread)
         .join(PostQuotes, PostQuotes.quoted_pid == Post.pid)
-    ).group_by(User.uid).subquery()
+    ).group_by(year, Thread.bid, Post.poster_uid).subquery('quoted_stats')
 
-    quotes_stats = asf(
+    quotes_stats = (
         session
         .query(
-            User.uid,
+            Thread.bid,
+            year,
+            Post.poster_uid,
             func.count(PostQuotes.count).label('quotes_count'),
         )
-        .join(Post.poster)
+        .join(Post.thread)
         .join(PostQuotes, PostQuotes.pid == Post.pid)
-    ).group_by(User.uid).subquery()
+    ).group_by(year, Thread.bid, Post.poster_uid).subquery('quotes_stats')
+
+    query = (
+        session
+        .query(
+            post_stats.c.bid,
+            post_stats.c.year,
+            post_stats.c.poster_uid.label('uid'),
+            post_stats.c.post_count,
+            post_stats.c.edit_count,
+            post_stats.c.avg_post_length,
+            func.coalesce(threads_opened.c.threads_created, 0).label('threads_created'),
+            func.coalesce(quoted_stats.c.quoted_count, 0).label('quoted_count'),
+            func.coalesce(quotes_stats.c.quotes_count, 0).label('quotes_count'),
+        )
+        .select_from(post_stats)
+        .outerjoin(threads_opened,
+                   and_(threads_opened.c.year == post_stats.c.year,
+                   threads_opened.c.bid == post_stats.c.bid,
+                   threads_opened.c.poster_uid == post_stats.c.poster_uid))
+        .outerjoin(quoted_stats,
+                   and_(quoted_stats.c.year == post_stats.c.year,
+                   quoted_stats.c.bid == post_stats.c.bid,
+                   quoted_stats.c.poster_uid == post_stats.c.poster_uid))
+        .outerjoin(quotes_stats,
+                   and_(quotes_stats.c.year == post_stats.c.year,
+                   quotes_stats.c.bid == post_stats.c.bid,
+                   quotes_stats.c.poster_uid == post_stats.c.poster_uid))
+        .filter(post_stats.c.post_count >= post_count_cutoff)
+    )
+
+    return query
+
+
+def poster_stats(session, year=None, bid=None):
+    """
+    Statistics on posts and threads for each user.
+
+    Result columns:
+    user => User
+    post_count, edit_count, avg_post_length, threads_created
+
+    Note: total length of all posts is post_count * avg_post_length.
+    """
+    agg = lambda f, c: f(c).label(c.name)
 
     query = (
         session
         .query(
             User,
-            post_stats,
-            func.coalesce(threads_opened.c.threads_created, 0).label('threads_created'),
-            func.coalesce(quoted_stats.c.quoted_count, 0).label('quoted_count'),
-            func.coalesce(quotes_stats.c.quotes_count, 0).label('quotes_count'),
+            agg(func.sum, PosterStats.post_count),
+            agg(func.sum, PosterStats.edit_count),
+            agg(func.sum, PosterStats.threads_created),
+            agg(func.sum, PosterStats.quoted_count),
+            agg(func.sum, PosterStats.quotes_count),
+            cast(func.avg(PosterStats.avg_post_length), Integer).label('avg_post_length'),
         )
-        .outerjoin(threads_opened, threads_opened.c.uid == User.uid)
-        .outerjoin(quoted_stats, quoted_stats.c.uid == User.uid)
-        .outerjoin(quotes_stats, quotes_stats.c.uid == User.uid)
-        .join(post_stats, post_stats.c.uid == User.uid)
-        .filter(post_stats.c.post_count >= 25)
+        .join(PosterStats.user)
+        .group_by(PosterStats.uid, User)
     )
-
+    if year:
+        query = query.filter(PosterStats.year == year)
+    if bid:
+        query = query.filter(PosterStats.bid == bid)
     return query
 
 

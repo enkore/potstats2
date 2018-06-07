@@ -5,7 +5,8 @@ import click
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 
-from .db import get_session, Post, PostLinks, PostQuotes, LinkRelation, LinkType
+from . import dal
+from .db import get_session, Post, PostLinks, PostQuotes, LinkRelation, LinkType, PosterStats
 from .util import ElapsedProgressBar, chunk_query
 
 
@@ -15,6 +16,7 @@ def main():
     session.query(PostQuotes).delete()
     session.query(PostLinks).delete()
 
+    bake_poster_stats(session)
     quote_insert_stmt = insert(PostQuotes.__table__)
     quote_insert_stmt = quote_insert_stmt.on_conflict_do_update(
         index_elements=PostQuotes.__table__.primary_key.columns,
@@ -71,6 +73,13 @@ def aggregate_post_links(session):
     elapsed = perf_counter() - t0
     print('Aggregated {} links into {} link relationships in {:.1f} s.'
           .format(session.query(PostLinks).count(), session.query(LinkRelation).count(), elapsed))
+
+
+def bake_poster_stats(session):
+    t0 = perf_counter()
+    PosterStats.refresh(session, dal.poster_stats_agg(session))
+    elapsed = perf_counter() - t0
+    print('Baked poster stats ({} rows) in {:.1f} s.'.format(session.query(PosterStats).count(), elapsed))
 
 
 def analyze_post(post, pids, quotes, urls):

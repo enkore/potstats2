@@ -282,3 +282,21 @@ class LinkRelation(PseudoMaterializedView):
     count = Column(Integer, default=0)
 
     user = relationship('User')
+
+
+class PosterStats(PseudoMaterializedView):
+    __tablename__ = 'baked_poster_stats'
+
+    year = Column(Integer, primary_key=True)
+    bid = Column(Integer, ForeignKey('boards.bid'), primary_key=True)
+    uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
+
+    post_count = Column(Integer)
+    edit_count = Column(Integer)
+    avg_post_length = Column(Integer)
+    threads_created = Column(Integer)
+    quoted_count = Column(Integer)
+    quotes_count = Column(Integer)
+
+    board = relationship('Board')
+    user = relationship('User')

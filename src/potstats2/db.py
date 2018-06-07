@@ -2,7 +2,7 @@ import enum
 import sys
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
-    CheckConstraint, func, Enum
+    CheckConstraint, func, Enum, Index
 from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression, aliased
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert, JSONB
@@ -149,6 +149,10 @@ class Post(Base):
     __table_args__ = (
         CheckConstraint('last_edit_uid is null or edit_count > 0', name='last_edit_uid_check'),
         CheckConstraint('last_edit_timestamp is null or edit_count > 0', name='last_edit_timestamp_check'),
+        # This index is mostly for speeding up queries of the "find the first/last post in thread X";
+        # it is used by the query populating Thread.first_post. Actually no query would be necessary for that,
+        # but oh well I'm lazy.
+        Index('tid_pid', 'tid', 'pid'),
     )
 
     pid = bb_id_column()

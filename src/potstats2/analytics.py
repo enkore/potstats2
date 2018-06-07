@@ -11,12 +11,24 @@ from .util import ElapsedProgressBar, chunk_query
 
 
 @click.command()
-def main():
+@click.option('--skip-posts', is_flag=True, default=False)
+def main(skip_posts):
     session = get_session()
     session.query(PostQuotes).delete()
     session.query(PostLinks).delete()
 
+    if not skip_posts:
+        analyze_posts(session)
+
+    aggregate_post_links(session)
     bake_poster_stats(session)
+
+    session.commit()
+    from .backend import cache
+    cache.invalidate()
+
+
+def analyze_posts(session):
     quote_insert_stmt = insert(PostQuotes.__table__)
     quote_insert_stmt = quote_insert_stmt.on_conflict_do_update(
         index_elements=PostQuotes.__table__.primary_key.columns,
@@ -59,12 +71,6 @@ def main():
         urls.clear()
 
     print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(num_posts, bar.elapsed, num_posts / bar.elapsed))
-
-    aggregate_post_links(session)
-
-    session.commit()
-    from .backend import cache
-    cache.invalidate()
 
 
 def aggregate_post_links(session):

@@ -383,7 +383,10 @@ def daily_statistic(session, statistic, year, bid=None):
 def weekday_stats(session, year=None, bid=None):
     query = (
         _daily_stats_agg_query(session)
-        .add_column(func.to_char(func.cast(func.concat(DailyStats.year, '-01-01'), Date) + func.cast(func.concat(DailyStats.day_of_year, ' days'), Interval), 'ID').label('weekday'))
+        .add_column(func.to_char(
+            func.cast(func.concat(DailyStats.year, '-01-01'), Date)
+            + func.cast(func.concat(DailyStats.day_of_year - 1, ' days'), Interval),
+            'ID').label('weekday'))
         .group_by('weekday')
         .order_by('weekday')
     )

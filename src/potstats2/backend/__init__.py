@@ -230,25 +230,6 @@ def poster_stats():
     return json_response(response)
 
 
-def time_segregated_stats(time_column, time_column_name):
-    def view():
-        session = get_session()
-        year = request_arg('year', int, default=None)
-        bid = request_arg('bid', int, default=None)
-
-        query = dal.aggregate_stats_segregated_by_time(session, time_column, year, bid)
-
-        rows = []
-        for row in query.all():
-            row = row._asdict()
-            row[time_column_name] = row.pop('time')
-            rows.append(row)
-
-        return json_response({'rows': rows})
-    view.__name__ = 'view_' + time_column_name
-    return cache_api_view(view)
-
-
 @app.route('/api/weekday-stats')
 @cache_api_view
 def weekday_stats():

@@ -72,6 +72,7 @@ def merge_posts(session, dbthread, posts):
         post_content.content = post.find('./message/content').text
         post_content.title = post.find('./message/title').text
         post.content = post_content
+        post.content_length = len(post_content.content)
 
         is_hidden = post.attrib.get('is-hidden', '')
         if is_hidden:

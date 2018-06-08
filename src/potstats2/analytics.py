@@ -15,8 +15,6 @@ from .util import ElapsedProgressBar, chunk_query
 def main(skip_posts):
     config.setup_debugger()
     session = get_session()
-    session.query(PostQuotes).delete()
-    session.query(PostLinks).delete()
 
     if not skip_posts:
         analyze_posts(session)
@@ -62,6 +60,9 @@ def analyze_posts(session):
         index_elements=PostLinks.__table__.primary_key.columns,
         set_=dict(count=url_insert_stmt.excluded.count + PostLinks.__table__.c.count)
     )
+
+    session.query(PostQuotes).delete()
+    session.query(PostLinks).delete()
 
     num_posts = session.query(Post).count()
     with ElapsedProgressBar(length=num_posts, label='Analyzing posts') as bar:

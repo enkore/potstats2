@@ -5,7 +5,7 @@ import click
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 
-from . import dal
+from . import dal, config
 from .db import get_session, Post, PostContent, PostLinks, PostQuotes, LinkRelation, LinkType, PosterStats
 from .util import ElapsedProgressBar, chunk_query
 
@@ -13,6 +13,7 @@ from .util import ElapsedProgressBar, chunk_query
 @click.command()
 @click.option('--skip-posts', is_flag=True, default=False)
 def main(skip_posts):
+    config.setup_debugger()
     session = get_session()
     session.query(PostQuotes).delete()
     session.query(PostLinks).delete()

@@ -136,6 +136,11 @@ def analyze_post(post, pids, quotes, urls):
 
     def update_url(url, link_type, post):
         if url:
+            if url.startswith('data:'):
+                print('PID %d: Skipping data: URL' % post.pid)
+                return
+            if len(url) > 300:
+                url = url[:300]
             if url[0] == url[-1] and url[0] in ("'", '"'):
                 url = url[1:-1]
             if url.startswith('/'):

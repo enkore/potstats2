@@ -256,14 +256,15 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, time_col
     return query
 
 
-def daily_aggregate_statistic(session):
+def daily_statistics_agg(session):
     """
-    Aggregate a specific statistic for each day in a given year.
+    Aggregate statistics for each day in each year.
 
     Result columns:
-    - day_of_year
-    - statistic
-    - extra.active_threads: list of dicts of the most active threads (w.r.t. post count) of the day.
+    - day_of_year, year
+    - bid
+    - post_count, edit_count, avg_post_length, threads_created, active_users
+    - active_threads: list of dicts of the most active threads (w.r.t. post count) of the day.
       Each dict consists of json_thread_columns (tid, [sub]title) plus "thread_post_count".
     """
     year = func.extract('year', Post.timestamp).label('year')
@@ -309,17 +310,10 @@ def daily_aggregate_statistic(session):
     )
 
 
-def yearly_stats(session, year=None, bid=None):
-    """
-    Aggregate (across all users) statistics on posts and threads
-
-    Result columns:
-    post_count, edit_count, avg_post_length, threads_created
-    year if year filter is not specified.
-    """
+def _daily_stats_agg_query(session):
     agg = lambda f, c: f(c).label(c.name)
 
-    query = (
+    return (
         session
         .query(
             agg(func.sum, DailyStats.post_count),
@@ -329,6 +323,17 @@ def yearly_stats(session, year=None, bid=None):
             cast(func.avg(DailyStats.avg_post_length), Integer).label('avg_post_length'),
         )
     )
+
+
+def yearly_stats(session, year=None, bid=None):
+    """
+    Aggregate (across all users) statistics on posts and threads
+
+    Result columns:
+    post_count, edit_count, avg_post_length, threads_created
+    year if year filter is not specified.
+    """
+    query = _daily_stats_agg_query(session)
     if year:
         query = query.filter(DailyStats.year == year)
     else:
@@ -336,6 +341,42 @@ def yearly_stats(session, year=None, bid=None):
 
     if bid:
         query = query.filter(DailyStats.bid == bid)
+    return query
+
+
+def daily_stats(session, year, bid=None):
+    """
+    Aggregate (across all users) statistics on posts and threads
+
+    Result columns:
+    post_count, edit_count, avg_post_length, threads_created
+    """
+    query = (
+        _daily_stats_agg_query(session)
+        .add_columns(DailyStats.day_of_year, func.jsonb_agg(DailyStats.active_threads).label('active_threads'))
+        .filter(DailyStats.year == year)
+        .group_by(DailyStats.day_of_year)
+        .order_by(DailyStats.day_of_year)
+    )
+    if bid:
+        query = query.filter(DailyStats.bid == bid)
+    return query
+
+
+def daily_statistic(session, statistic, year, bid=None):
+    """
+    Aggregate (across all users) statistics on posts and threads
+
+    Result columns:
+    post_count, edit_count, avg_post_length, threads_created
+    """
+    sq = daily_stats(session, year, bid).subquery()
+    legal_statistics = list(sq.c.keys())
+    legal_statistics.remove('day_of_year')
+    if statistic not in legal_statistics:
+        raise DalParameterError('Invalid statistic %r, choose from: %s' % (statistic, legal_statistics))
+
+    query = session.query(sq.c[statistic].label('statistic'), sq.c.day_of_year, sq.c.active_threads)
     return query
 
 

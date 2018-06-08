@@ -24,7 +24,7 @@ def main(skip_posts):
 
     aggregate_post_links(session)
     bake_poster_stats(session)
-    bake_yearly_stats(session)
+    bake_daily_stats(session)
 
     session.commit()
     from .backend import cache
@@ -115,12 +115,11 @@ def bake_poster_stats(session):
     print('Baked poster stats ({} rows) in {:.1f} s.'.format(session.query(PosterStats).count(), elapsed))
 
 
-def bake_yearly_stats(session):
+def bake_daily_stats(session):
     t0 = perf_counter()
-    doy = func.extract('doy', Post.timestamp)
-    DailyStats.refresh(session, dal.daily_aggregate_statistic(session))
+    DailyStats.refresh(session, dal.daily_statistics_agg(session))
     elapsed = perf_counter() - t0
-    print('Baked yearly stats ({} rows) in {:.1f} s.'.format(session.query(DailyStats).count(), elapsed))
+    print('Baked daily stats ({} rows) in {:.1f} s.'.format(session.query(DailyStats).count(), elapsed))
 
 
 def analyze_post(post, pids, quotes, urls):

@@ -283,7 +283,7 @@ def daily_stats():
     statistic = request_arg('statistic', str)
 
     try:
-        query = dal.daily_aggregate_statistic(session, statistic, year, bid)
+        query = dal.daily_statistic(session, statistic, year, bid)
     except dal.DalParameterError as dpe:
         raise APIError(str(dpe))
 
@@ -308,9 +308,8 @@ def daily_stats():
             series.append(dict(name=week_of_the_year, series=week()))
 
         series[-1]['series'][date.weekday()]['value'] = row.statistic
-        for t in row.active_threads:
-            t.pop('doy')
-            t.pop('rank')
+        active_threads = [thread for threads in row.active_threads for thread in threads]
+        active_threads.sort(key=lambda thread: thread['thread_post_count'], reverse=True)
         series[-1]['series'][date.weekday()]['extra'] = dict(active_threads=row.active_threads[:5])
 
     if int(start_date.strftime('%W')) > 0:

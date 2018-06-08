@@ -295,15 +295,18 @@ def boards(session, year=None):
     Result columns:
     Board, thread_count, post_count
     """
-    sq = session.query(Thread.bid, Thread.tid, func.count(Post.pid).label('post_count')).join(Thread.posts).group_by(Thread.tid)
-    if year:
-        sq = apply_year_filter(sq, year)
-    sq = sq.subquery()
+    # This is not a 100 % accurate because PosterStats does not include everyone (has to have more than 25 posts p.a.).
     query = (
         session
-        .query(Board, func.count(sq.c.tid).label('thread_count'), func.sum(sq.c.post_count).label('post_count'))
-        .join(sq, sq.c.bid == Board.bid).group_by(Board)
+        .query(Board,
+               func.sum(PosterStats.post_count).label('post_count'),
+               func.sum(PosterStats.threads_created).label('thread_count'))
+        .join(PosterStats.board)
+        .group_by(Board)
+        .order_by(Board.bid)
     )
+    if year:
+        query = query.filter(PosterStats.year == year)
     return query
 
 

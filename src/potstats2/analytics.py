@@ -6,7 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 
 from . import dal
-from .db import get_session, Post, PostLinks, PostQuotes, LinkRelation, LinkType, PosterStats
+from .db import get_session, Post, PostContent, PostLinks, PostQuotes, LinkRelation, LinkType, PosterStats
 from .util import ElapsedProgressBar, chunk_query
 
 
@@ -48,7 +48,7 @@ def analyze_posts(session):
         urls = []
         n = 0
 
-        for post in chunk_query(session.query(Post.pid, Post.content, Post.poster_uid, Post.timestamp), Post.pid, chunk_size=10000):
+        for post in chunk_query(session.query(Post.pid, PostContent.content, Post.poster_uid, Post.timestamp).join(Post.content), Post.pid, chunk_size=10000):
             analyze_post(post, pids, quotes, urls)
             n += 1
 

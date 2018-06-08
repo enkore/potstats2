@@ -387,18 +387,17 @@ def boards(session, year=None):
     Result columns:
     Board, thread_count, post_count
     """
-    # This is not a 100 % accurate because PosterStats does not include everyone (has to have more than 25 posts p.a.).
     query = (
         session
         .query(Board,
-               func.sum(PosterStats.post_count).label('post_count'),
-               func.sum(PosterStats.threads_created).label('thread_count'))
-        .join(PosterStats.board)
+               func.sum(DailyStats.post_count).label('post_count'),
+               func.sum(DailyStats.threads_created).label('thread_count'))
+        .join(DailyStats.board)
         .group_by(Board)
         .order_by(Board.bid)
     )
     if year:
-        query = query.filter(PosterStats.year == year)
+        query = query.filter(DailyStats.year == year)
     return query
 
 

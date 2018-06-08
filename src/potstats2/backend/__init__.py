@@ -253,13 +253,20 @@ app.route('/api/weekday-stats')(
     time_segregated_stats(func.to_char(Post.timestamp, 'ID'), 'weekday')
 )
 
-# app.route('/api/hourly-stats')(
-#    time_segregated_stats(func.to_char(Post.timestamp, 'WW:ID:HH24'), 'weekday_hour')
-# )
 
-app.route('/api/year-over-year-stats')(
-    time_segregated_stats(func.extract('year', Post.timestamp), 'year')
-)
+@app.route('/api/year-over-year-stats')
+def year_over_year_stats():
+    session = get_session()
+    year = request_arg('year', int, default=None)
+    bid = request_arg('bid', int, default=None)
+
+    query = dal.yearly_stats(session, year, bid)
+
+    rows = []
+    for row in query.all():
+        rows.append(row._asdict())
+
+    return json_response({'rows': rows})
 
 
 @app.route('/api/daily-stats')

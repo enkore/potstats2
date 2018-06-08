@@ -6,7 +6,10 @@ from sqlalchemy import func, bindparam
 from sqlalchemy.dialects.postgresql import insert
 
 from . import dal, config
-from .db import get_session, Post, PostContent, PostLinks, PostQuotes, LinkRelation, LinkType, PosterStats
+from .db import get_session
+from .db import Post, PostContent
+from .db import PostLinks, PostQuotes, LinkRelation, LinkType
+from .db import PosterStats, DailyStats
 from .util import ElapsedProgressBar, chunk_query
 
 
@@ -21,6 +24,7 @@ def main(skip_posts):
 
     aggregate_post_links(session)
     bake_poster_stats(session)
+    bake_yearly_stats(session)
 
     session.commit()
     from .backend import cache
@@ -109,6 +113,14 @@ def bake_poster_stats(session):
     PosterStats.refresh(session, dal.poster_stats_agg(session))
     elapsed = perf_counter() - t0
     print('Baked poster stats ({} rows) in {:.1f} s.'.format(session.query(PosterStats).count(), elapsed))
+
+
+def bake_yearly_stats(session):
+    t0 = perf_counter()
+    doy = func.extract('doy', Post.timestamp)
+    DailyStats.refresh(session, dal.daily_aggregate_statistic(session))
+    elapsed = perf_counter() - t0
+    print('Baked yearly stats ({} rows) in {:.1f} s.'.format(session.query(DailyStats).count(), elapsed))
 
 
 def analyze_post(post, pids, quotes, urls):

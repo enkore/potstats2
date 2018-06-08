@@ -6,7 +6,7 @@ from sqlalchemy.orm import aliased
 from .db import User, Board, Thread, Post
 from .db import PostQuotes
 from .db import LinkRelation
-from .db import PosterStats
+from .db import PosterStats, DailyStats
 
 
 class DalParameterError(RuntimeError):
@@ -167,7 +167,7 @@ def poster_stats(session, year=None, bid=None):
     return query
 
 
-def aggregate_stats_segregated_by_time(session, time_column_expression, year, bid):
+def aggregate_stats_segregated_by_time(session, time_column_expression, time_column_name):
     """
     Aggregate (across all users) statistics on posts and threads, grouped by time_column_expression.
 
@@ -186,42 +186,52 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
     - https://www.postgresql.org/docs/current/static/functions-formatting.html
     - https://www.postgresql.org/docs/10/static/functions-datetime.html
     """
-    asf = partial(apply_standard_filters, year=year, bid=bid)
-    post_query = asf(
+    year = func.extract('year', Post.timestamp).label('year')
+    post_query = (
         session
         .query(
+            year,
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
             cast(func.avg(Post.content_length), Integer).label('avg_post_length'),
-            time_column_expression.label('time')
+            time_column_expression.label('time'),
+            Board.bid
         )
-        .group_by('time')
+        .join('thread', 'board')
+        .group_by('time', 'year', Board.bid)
     ).subquery()
-    threads_query = asf(
+    threads_query = (
         session
         .query(
+            Thread.bid,
+            year,
             func.count(Thread.tid).label('threads_created'),
             time_column_expression.label('time')
         )
         .join(Thread.first_post)
-        .group_by('time')
+        .group_by('time', 'year', Thread.bid)
     ).subquery()
-    user_sq = asf(
+    user_sq = (
         session
         .query(
+            Thread.bid,
+            year,
             User.uid,
             time_column_expression.label('time'),
         )
         .join(Post.poster)
-        .group_by('time', User.uid)
+        .join(Post.thread)
+        .group_by('time', 'year', Thread.bid, User.uid)
     ).subquery()
     active_users_query = (
         session.query(
             func.count(user_sq.c.uid).label('active_users'),
-            user_sq.c.time
+            user_sq.c.time,
+            user_sq.c.year,
+            user_sq.c.bid
         )
         .select_from(user_sq)
-        .group_by(user_sq.c.time)
+        .group_by(user_sq.c.time, user_sq.c.year, user_sq.c.bid)
     ).subquery()
 
     query = (
@@ -231,16 +241,22 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
                # because a created thread implies at least one post.
                func.coalesce(threads_query.c.threads_created, 0).label('threads_created'),
                'active_users',
-               post_query.c.time)
+               post_query.c.time.label(time_column_name), post_query.c.year, post_query.c.bid)
         .select_from(post_query)
-        .outerjoin(threads_query, post_query.c.time == threads_query.c.time, full=True)
-        .outerjoin(active_users_query, post_query.c.time == active_users_query.c.time, full=True)
+        .outerjoin(threads_query,
+                   and_(post_query.c.time == threads_query.c.time,
+                   post_query.c.year == threads_query.c.year,
+                   post_query.c.bid == threads_query.c.bid), full=True)
+        .outerjoin(active_users_query,
+                   and_(post_query.c.time == active_users_query.c.time,
+                   post_query.c.year == active_users_query.c.year,
+                   post_query.c.bid == active_users_query.c.bid), full=True)
         .order_by(post_query.c.time)
     )
     return query
 
 
-def daily_aggregate_statistic(session, statistic, year, bid=None):
+def daily_aggregate_statistic(session):
     """
     Aggregate a specific statistic for each day in a given year.
 
@@ -250,42 +266,77 @@ def daily_aggregate_statistic(session, statistic, year, bid=None):
     - extra.active_threads: list of dicts of the most active threads (w.r.t. post count) of the day.
       Each dict consists of json_thread_columns (tid, [sub]title) plus "thread_post_count".
     """
-    cte = aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), year, bid).subquery()
-    legal_statistics = list(cte.c.keys())
-    legal_statistics.remove('time')
-    if statistic not in legal_statistics:
-        raise DalParameterError('Invalid statistic %r, choose from: %s' % (statistic, legal_statistics))
+    year = func.extract('year', Post.timestamp).label('year')
+    cte = aggregate_stats_segregated_by_time(session, func.extract('doy', Post.timestamp), 'day_of_year').subquery()
 
     json_thread_columns = (Thread.tid, Thread.title, Thread.subtitle)
 
-    threads_active_during_time = apply_standard_filters(
+    threads_active_during_time = (
         session
             .query(*json_thread_columns,
                    func.count(Post.pid).label('thread_post_count'),
                    func.extract('doy', Post.timestamp).label('doy'),
+                   year,
+                   Thread.bid,
                    func.row_number().over(
-                       partition_by=func.extract('doy', Post.timestamp),
+                       partition_by=tuple_(year, Thread.bid, func.extract('doy', Post.timestamp)),
                        order_by=tuple_(desc(func.count(Post.pid)), Thread.tid)
                    ).label('rank'))
             .join(Post.thread)
-            .group_by(*json_thread_columns, 'doy')
-        , year, bid).subquery('tadt')
+            .group_by(*json_thread_columns, 'doy', Thread.bid, year)
+        ).subquery('tadt')
 
     active_threads = (
         session
         .query(threads_active_during_time.c.doy,
+               threads_active_during_time.c.year,
+               threads_active_during_time.c.bid,
                func.json_agg(column('tadt')).label('active_threads'))
         .select_from(threads_active_during_time)
         .filter(threads_active_during_time.c.rank <= 5)
-        .group_by('doy')
+        .group_by('doy', 'bid', 'year')
         .subquery()
     )
 
     return (
         session
-        .query(cte.c.time.label('day_of_year'), cte.c[statistic].label('statistic'), active_threads.c.active_threads)
-        .join(active_threads, active_threads.c.doy == cte.c.time)
+        .query(
+            *cte.c,
+            active_threads.c.active_threads)
+        .join(active_threads, and_(active_threads.c.doy == cte.c.day_of_year,
+                                   active_threads.c.year == cte.c.year,
+                                   active_threads.c.bid == cte.c.bid))
     )
+
+
+def yearly_stats(session, year=None, bid=None):
+    """
+    Aggregate (across all users) statistics on posts and threads
+
+    Result columns:
+    post_count, edit_count, avg_post_length, threads_created
+    year if year filter is not specified.
+    """
+    agg = lambda f, c: f(c).label(c.name)
+
+    query = (
+        session
+        .query(
+            agg(func.sum, DailyStats.post_count),
+            agg(func.sum, DailyStats.edit_count),
+            agg(func.sum, DailyStats.threads_created),
+            agg(func.sum, DailyStats.active_users),
+            cast(func.avg(DailyStats.avg_post_length), Integer).label('avg_post_length'),
+        )
+    )
+    if year:
+        query = query.filter(DailyStats.year == year)
+    else:
+        query = query.add_column(DailyStats.year).group_by(DailyStats.year).order_by(DailyStats.year)
+
+    if bid:
+        query = query.filter(DailyStats.bid == bid)
+    return query
 
 
 def boards(session, year=None):

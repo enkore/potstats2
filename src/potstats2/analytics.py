@@ -2,7 +2,7 @@ from urllib.parse import urlparse
 from time import perf_counter
 
 import click
-from sqlalchemy import func
+from sqlalchemy import func, bindparam
 from sqlalchemy.dialects.postgresql import insert
 
 from . import dal, config
@@ -29,6 +29,27 @@ def main(skip_posts):
     cache.invalidate()
 
 
+def iter_posts(session, chunk_size=10000):
+    start_pid = bindparam('start_pid')
+    contents = session.query(PostContent).filter(PostContent.pid > start_pid).order_by(PostContent.pid).limit(chunk_size).subquery()
+    query = (
+        session
+        .query(Post.pid, Post.poster_uid, contents.c.content, contents.c.title)
+        .join(contents, contents.c.pid == Post.pid)
+        .filter(Post.pid > start_pid)
+        .order_by(Post.pid)
+        .limit(chunk_size)
+    )
+
+    last_pid = 0
+    while True:
+        posts = query.params(start_pid=last_pid).all()
+        yield from posts
+        if not posts:
+            break
+        last_pid = posts[-1].pid
+
+
 def analyze_posts(session):
     quote_insert_stmt = insert(PostQuotes.__table__)
     quote_insert_stmt = quote_insert_stmt.on_conflict_do_update(
@@ -49,7 +70,7 @@ def analyze_posts(session):
         urls = []
         n = 0
 
-        for post in chunk_query(session.query(Post.pid, PostContent.content, Post.poster_uid, Post.timestamp).join(Post.content), Post.pid, chunk_size=10000):
+        for post in iter_posts(session):
             analyze_post(post, pids, quotes, urls)
             n += 1
 

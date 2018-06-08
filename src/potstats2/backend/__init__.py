@@ -249,12 +249,24 @@ def time_segregated_stats(time_column, time_column_name):
     return cache_api_view(view)
 
 
-app.route('/api/weekday-stats')(
-    time_segregated_stats(func.to_char(Post.timestamp, 'ID'), 'weekday')
-)
+@app.route('/api/weekday-stats')
+@cache_api_view
+def weekday_stats():
+    session = get_session()
+    year = request_arg('year', int, default=None)
+    bid = request_arg('bid', int, default=None)
+
+    query = dal.weekday_stats(session, year, bid)
+
+    rows = []
+    for row in query.all():
+        rows.append(row._asdict())
+
+    return json_response({'rows': rows})
 
 
 @app.route('/api/year-over-year-stats')
+@cache_api_view
 def year_over_year_stats():
     session = get_session()
     year = request_arg('year', int, default=None)

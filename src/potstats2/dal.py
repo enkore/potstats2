@@ -1,6 +1,6 @@
 from datetime import datetime
 from functools import partial
-from sqlalchemy import func, cast, Float, desc, column, tuple_, Integer, and_
+from sqlalchemy import func, cast, Float, desc, column, tuple_, Integer, and_, Date, text, Interval
 from sqlalchemy.orm import aliased
 
 from .db import User, Board, Thread, Post
@@ -377,6 +377,20 @@ def daily_statistic(session, statistic, year, bid=None):
         raise DalParameterError('Invalid statistic %r, choose from: %s' % (statistic, legal_statistics))
 
     query = session.query(sq.c[statistic].label('statistic'), sq.c.day_of_year, sq.c.active_threads)
+    return query
+
+
+def weekday_stats(session, year=None, bid=None):
+    query = (
+        _daily_stats_agg_query(session)
+        .add_column(func.to_char(func.cast(func.concat(DailyStats.year, '-01-01'), Date) + func.cast(func.concat(DailyStats.day_of_year, ' days'), Interval), 'ID').label('weekday'))
+        .group_by('weekday')
+        .order_by('weekday')
+    )
+    if year:
+        query = query.filter(DailyStats.year == year)
+    if bid:
+        query = query.filter(DailyStats.bid == bid)
     return query
 
 

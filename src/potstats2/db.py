@@ -167,12 +167,21 @@ class Post(Base):
 
     is_hidden = Column(Boolean)
 
-    title = Column(Unicode)
-    content = Column(UnicodeText)
+    content_length = Column(Integer)
 
     poster = relationship('User', foreign_keys=poster_uid)
     last_edit_user = relationship('User', foreign_keys=last_edit_uid)
     thread = relationship('Thread', foreign_keys=tid, backref='posts')
+
+
+class PostContent(Base):
+    __tablename__ = 'post_contents'
+
+    pid = Column(Integer, ForeignKey('posts.pid'), primary_key=True)
+    title = Column(Unicode)
+    content = Column(UnicodeText)
+
+    post = relationship('Post', backref='content')
 
 
 class PseudoMaterializedView(Base):

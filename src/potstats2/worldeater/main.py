@@ -7,7 +7,7 @@ from sqlalchemy.orm.attributes import set_attribute
 
 from .api import XmlApiConnector
 from ..config import setup_debugger
-from ..db import get_session, Category, Board, Thread, Post, User, WorldeaterState, WorldeaterThreadsNeedingUpdate
+from ..db import get_session, Category, Board, Thread, Post, PostContent, User, WorldeaterState, WorldeaterThreadsNeedingUpdate
 from ..util import ElapsedProgressBar
 from ..backend import cache
 
@@ -67,8 +67,11 @@ def merge_posts(session, dbthread, posts):
         if dbpost.edit_count:
             dbpost.last_edit_user = User.from_xml(session, edited.find('./lastedit/user'))
             dbpost.last_edit_timestamp = datetime_from_xml(edited.find('./lastedit/date'))
-        dbpost.title = post.find('./message/title').text
-        dbpost.content = post.find('./message/content').text
+
+        post_content = session.query(PostContent).get(pid) or PostContent(pid=pid)
+        post_content.content = post.find('./message/content').text
+        post_content.title = post.find('./message/title').text
+        post.content = post_content
 
         is_hidden = post.attrib.get('is-hidden', '')
         if is_hidden:

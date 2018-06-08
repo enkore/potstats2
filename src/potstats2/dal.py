@@ -73,7 +73,7 @@ def poster_stats_agg(session, post_count_cutoff=25):
             Post.poster_uid,
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
-            cast(func.avg(func.length(Post.content)), Integer).label('avg_post_length'),
+            cast(func.avg(Post.content_length), Integer).label('avg_post_length'),
         )
         .join(Post.thread)
     ).group_by(year, Thread.bid, Post.poster_uid).subquery('post_stats')
@@ -192,7 +192,7 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, year, bi
         .query(
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
-            cast(func.avg(func.length(Post.content)), Integer).label('avg_post_length'),
+            cast(func.avg(Post.content_length), Integer).label('avg_post_length'),
             time_column_expression.label('time')
         )
         .group_by('time')

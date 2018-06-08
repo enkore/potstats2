@@ -298,6 +298,21 @@ class LinkRelation(PseudoMaterializedView):
     user = relationship('User')
 
 
+class QuoteRelation(PseudoMaterializedView):
+    __tablename__ = 'baked_quote_stats'
+
+    year = Column(Integer, primary_key=True)
+    bid = Column(Integer, primary_key=True)
+    quoter_uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
+    quoted_uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
+    count = Column(Integer, default=0)
+    intensity = query_expression()
+
+    quoter = relationship('User', foreign_keys=quoter_uid)
+    quoted = relationship('User', foreign_keys=quoted_uid)
+
+
+
 class PosterStats(PseudoMaterializedView):
     __tablename__ = 'baked_poster_stats'
 

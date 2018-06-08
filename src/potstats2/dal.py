@@ -6,7 +6,7 @@ from sqlalchemy.orm import aliased
 from .db import User, Board, Thread, Post
 from .db import PostQuotes
 from .db import LinkRelation
-from .db import PosterStats, DailyStats
+from .db import PosterStats, DailyStats, QuoteRelation
 
 
 class DalParameterError(RuntimeError):
@@ -418,6 +418,39 @@ def boards(session, year=None):
     return query
 
 
+def social_graph_agg(session, count_cutoff=10):
+    """
+    Retrieve social graph (based on how users quote each other).
+
+    Result columns:
+
+    User: quoter, User: quotee, count
+
+    intensity is count relative to the maximum count in the current result
+    (thus, intensity is between zero and one).
+    """
+
+    quoter = aliased(User, name='quoter')
+    quoted = aliased(User, name='quoted')
+    quoted_post = aliased(Post, name='quoted_post')
+
+    count = func.sum(PostQuotes.count).label('count')
+
+    return (
+        session
+        .query(
+            func.extract('year', Post.timestamp).label('year'), Thread.bid,
+            quoter.uid.label('quoter_uid'), quoted.uid.label('quoted_uid'), count)
+        .join(Post, PostQuotes.post)
+        .join(Post.thread)
+        .join(quoted_post, PostQuotes.quoted_post)
+        .join(quoter, Post.poster)
+        .join(quoted, quoted_post.poster)
+        .group_by('year', Thread.bid, quoter.uid, quoted.uid)
+        .having(count > count_cutoff)
+    )
+
+
 def social_graph(session, year=None):
     """
     Retrieve social graph (based on how users quote each other).
@@ -428,25 +461,19 @@ def social_graph(session, year=None):
     intensity is count relative to the maximum count in the current result
     (thus, intensity is between zero and one).
     """
-
     quoter = aliased(User, name='quoter')
-    quotee = aliased(User, name='quotee')
-    quoted_post = aliased(Post, name='quoted_post')
-
-    count = func.sum(PostQuotes.count).label('count')
-
-    query = apply_year_filter(
+    quoted = aliased(User, name='quoted')
+    count = func.sum(QuoteRelation.count).label('count')
+    query = (
         session
-        .query(quoter, quotee, count)
-        .join(Post, PostQuotes.post)
-        .join(quoted_post, PostQuotes.quoted_post)
-        .join(quoter, Post.poster)
-        .join(quotee, quoted_post.poster)
-        .group_by(quoter.uid, quotee.uid)
+        .query(quoter, quoted, count)
+        .join(quoter, QuoteRelation.quoter)
+        .join(quoted, QuoteRelation.quoted)
+        .group_by(quoter, quoted)
         .order_by(desc(count))
-        , year
     )
-
+    if year:
+        query = query.filter(QuoteRelation.year == year)
     # maximum_count = 0 <=> main query has empty result set - no division by zero happens.
     maximum_count = query.from_self(func.max(count)).one()[0] or 0
     query = query.add_columns((count / float(maximum_count)).label('intensity'))

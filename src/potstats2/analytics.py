@@ -9,7 +9,7 @@ from . import dal, config
 from .db import get_session
 from .db import Post, PostContent
 from .db import PostLinks, PostQuotes, LinkRelation, LinkType
-from .db import PosterStats, DailyStats
+from .db import PosterStats, DailyStats, QuoteRelation
 from .util import ElapsedProgressBar, chunk_query
 
 
@@ -25,6 +25,7 @@ def main(skip_posts):
     aggregate_post_links(session)
     bake_poster_stats(session)
     bake_daily_stats(session)
+    bake_quote_relation(session)
 
     session.commit()
     from .backend import cache
@@ -120,6 +121,13 @@ def bake_daily_stats(session):
     DailyStats.refresh(session, dal.daily_statistics_agg(session))
     elapsed = perf_counter() - t0
     print('Baked daily stats ({} rows) in {:.1f} s.'.format(session.query(DailyStats).count(), elapsed))
+
+
+def bake_quote_relation(session):
+    t0 = perf_counter()
+    QuoteRelation.refresh(session, dal.social_graph_agg(session))
+    elapsed = perf_counter() - t0
+    print('Baked quote relation ({} rows) in {:.1f} s.'.format(session.query(QuoteRelation).count(), elapsed))
 
 
 def analyze_post(post, pids, quotes, urls):

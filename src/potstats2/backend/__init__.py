@@ -123,7 +123,7 @@ def social_graph():
     for relation in query.all():
         rows.append({
             'from': relation.quoter,
-            'to': relation.quotee,
+            'to': relation.quoted,
             'count': relation.count,
             'intensity': relation.intensity,
         })

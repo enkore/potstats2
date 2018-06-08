@@ -101,7 +101,7 @@ def analyze_post(post, pids, quotes, urls):
             # quote=tid,pid,"user"
             _, _, params = quote_tag.partition('=')
             # tid,pid,"user"
-            tid, pid, user_name = params.split(',', maxsplit=3)
+            tid, pid, user_name = params.split(',', maxsplit=2)
             pid = int(pid)
         except ValueError as ve:
             print('PID %d: Malformed quote= tag: %r (%s)' % (post.pid, quote_tag, ve))

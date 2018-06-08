@@ -290,6 +290,7 @@ def daily_stats():
     rows = query.all()
 
     start_date = datetime.date(year, 1, 1)
+    actual_start_date = None
     day = datetime.timedelta(days=1)
 
     def week():
@@ -297,14 +298,15 @@ def daily_stats():
         return [dict(name=weekdays[dow], value=0.0) for dow in range(7)]
 
     series = [
-        dict(name=0, series=week())
     ]
 
     for row in rows:
         day_of_year = row.day_of_year - 1  # Postgres doy is 1-365/366 (leap years have 366 days)
         date = start_date + day_of_year * day
+        if not actual_start_date:
+            actual_start_date = date
         week_of_the_year = int(date.strftime('%W'))
-        if week_of_the_year != series[-1]['name']:
+        if not series or week_of_the_year != series[-1]['name']:
             series.append(dict(name=week_of_the_year, series=week()))
 
         series[-1]['series'][date.weekday()]['value'] = row.statistic
@@ -316,7 +318,7 @@ def daily_stats():
         series.pop(0)
 
     # Trim first week to actual week length
-    first_weekday = start_date.weekday()
+    first_weekday = actual_start_date.weekday()
     series[0]['series'] = series[0]['series'][first_weekday:]
 
     # Trim last week to actual week length

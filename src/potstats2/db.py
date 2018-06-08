@@ -285,6 +285,7 @@ class LinkRelation(PseudoMaterializedView):
                func.extract('year', Post.timestamp).label('year')))
         .join('post', 'poster')
         .group_by(PostLinks.domain, User.uid, PostLinks.type, 'year')
+        .having(func.sum(PostLinks.count) >= 10)
     )
 
     uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)

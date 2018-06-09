@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, Unic
     CheckConstraint, func, Enum, Index
 from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression, aliased
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.dialects.postgresql import insert, JSONB
+from sqlalchemy.dialects.postgresql import insert, JSONB, ARRAY
 
 import click
 
@@ -341,7 +341,7 @@ class DailyStats(PseudoMaterializedView):
     edit_count = Column(Integer)
     posts_length = Column(Integer)
     threads_created = Column(Integer)
-    active_users = Column(Integer)
+    active_users = Column(ARRAY(Integer, dimensions=1))
     active_threads = Column(JSONB)
 
     board = relationship('Board')

@@ -225,7 +225,7 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, time_col
     ).subquery()
     active_users_query = (
         session.query(
-            func.count(user_sq.c.uid).label('active_users'),
+            func.array_agg(user_sq.c.uid).label('active_users'),
             user_sq.c.time,
             user_sq.c.year,
             user_sq.c.bid
@@ -319,9 +319,10 @@ def _daily_stats_agg_query(session):
             agg(func.sum, DailyStats.post_count),
             agg(func.sum, DailyStats.edit_count),
             agg(func.sum, DailyStats.threads_created),
-            agg(func.sum, DailyStats.active_users),
+            func.array_length(func.array_agg(func.distinct(column('users'))), 1).label('active_users'),
             cast(func.sum(DailyStats.posts_length) / func.sum(DailyStats.post_count), Integer).label('avg_post_length'),
         )
+        .select_from(DailyStats, func.unnest(DailyStats.active_users).alias('users'))
     )
 
 

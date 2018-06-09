@@ -193,7 +193,7 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, time_col
             year,
             func.count(Post.pid).label('post_count'),
             func.sum(Post.edit_count).label('edit_count'),
-            cast(func.avg(Post.content_length), Integer).label('avg_post_length'),
+            func.sum(Post.content_length).label('posts_length'),
             time_column_expression.label('time'),
             Board.bid
         )
@@ -236,7 +236,7 @@ def aggregate_stats_segregated_by_time(session, time_column_expression, time_col
 
     query = (
         session
-        .query('post_count', 'edit_count', 'avg_post_length',
+        .query('post_count', 'edit_count', 'posts_length',
                # We don't need to COALESCE the post stats,
                # because a created thread implies at least one post.
                func.coalesce(threads_query.c.threads_created, 0).label('threads_created'),
@@ -263,7 +263,7 @@ def daily_statistics_agg(session):
     Result columns:
     - day_of_year, year
     - bid
-    - post_count, edit_count, avg_post_length, threads_created, active_users
+    - post_count, edit_count, posts_length, threads_created, active_users
     - active_threads: list of dicts of the most active threads (w.r.t. post count) of the day.
       Each dict consists of json_thread_columns (tid, [sub]title) plus "thread_post_count".
     """
@@ -320,7 +320,7 @@ def _daily_stats_agg_query(session):
             agg(func.sum, DailyStats.edit_count),
             agg(func.sum, DailyStats.threads_created),
             agg(func.sum, DailyStats.active_users),
-            cast(func.avg(DailyStats.avg_post_length), Integer).label('avg_post_length'),
+            cast(func.sum(DailyStats.posts_length) / func.sum(DailyStats.post_count), Integer).label('avg_post_length'),
         )
     )
 

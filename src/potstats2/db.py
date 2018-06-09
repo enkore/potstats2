@@ -312,7 +312,6 @@ class QuoteRelation(PseudoMaterializedView):
     quoted = relationship('User', foreign_keys=quoted_uid)
 
 
-
 class PosterStats(PseudoMaterializedView):
     __tablename__ = 'baked_poster_stats'
 
@@ -340,7 +339,7 @@ class DailyStats(PseudoMaterializedView):
 
     post_count = Column(Integer)
     edit_count = Column(Integer)
-    avg_post_length = Column(Integer)
+    posts_length = Column(Integer)
     threads_created = Column(Integer)
     active_users = Column(Integer)
     active_threads = Column(JSONB)

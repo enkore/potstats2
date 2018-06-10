@@ -241,7 +241,9 @@ def weekday_stats():
 
     rows = []
     for row in query.all():
-        rows.append(row._asdict())
+        result = row.stats
+        result['weekday'] = row.weekday
+        rows.append(result)
 
     return json_response({'rows': rows})
 
@@ -257,7 +259,9 @@ def year_over_year_stats():
 
     rows = []
     for row in query.all():
-        rows.append(row._asdict())
+        result = row.stats
+        result['year'] = row.year
+        rows.append(result)
 
     return json_response({'rows': rows})
 
@@ -302,7 +306,7 @@ def daily_stats():
         if not series or week_of_the_year != series[-1]['name']:
             series.append(dict(name=week_of_the_year, series=week()))
 
-        series[-1]['series'][date.weekday()]['value'] = row.statistic
+        series[-1]['series'][date.weekday()]['value'] = row.stats[statistic]
         active_threads = [thread for threads in row.active_threads for thread in threads]
         active_threads.sort(key=lambda thread: thread['thread_post_count'], reverse=True)
         series[-1]['series'][date.weekday()]['extra'] = dict(active_threads=row.active_threads[:5])

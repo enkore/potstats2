@@ -1,7 +1,8 @@
 from datetime import datetime
 from functools import partial
 from sqlalchemy import func, cast, Float, desc, column, tuple_, Integer, and_, Date, text, Interval
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, Bundle
+from sqlalchemy.util import lightweight_named_tuple
 
 from .db import User, Board, Thread, Post
 from .db import PostQuotes
@@ -313,17 +314,25 @@ def daily_statistics_agg(session):
 def _daily_stats_agg_query(session):
     agg = lambda f, c: f(c).label(c.name)
 
-    return (
-        session
-        .query(
-            agg(func.sum, DailyStats.post_count),
-            agg(func.sum, DailyStats.edit_count),
-            agg(func.sum, DailyStats.threads_created),
-            func.array_length(func.array_agg(func.distinct(column('users'))), 1).label('active_users'),
-            cast(func.sum(DailyStats.posts_length) / func.sum(DailyStats.post_count), Integer).label('avg_post_length'),
-        )
-        .select_from(DailyStats, func.unnest(DailyStats.active_users).alias('users'))
-    )
+    class DailyStatsBundle(Bundle):
+        def create_row_processor(self, query, procs, labels):
+            """Override create_row_processor to return values as dictionaries"""
+
+            def proc(row):
+                row = dict(zip(labels, (proc(row) for proc in procs)))
+                row['active_users'] = len(set([uid for uids in row.pop('_active_users') for uid in uids]))
+                return row
+            return proc
+
+    stats = DailyStatsBundle('stats',
+                             agg(func.sum, DailyStats.post_count),
+                             agg(func.sum, DailyStats.edit_count),
+                             agg(func.sum, DailyStats.threads_created),
+                             func.jsonb_agg(DailyStats.active_users).label('_active_users'),
+                             cast(func.sum(DailyStats.posts_length) / func.sum(DailyStats.post_count), Integer).label(
+                                 'avg_post_length'))
+
+    return session.query(stats)
 
 
 def yearly_stats(session, year=None, bid=None):
@@ -331,7 +340,7 @@ def yearly_stats(session, year=None, bid=None):
     Aggregate (across all users) statistics on posts and threads
 
     Result columns:
-    post_count, edit_count, avg_post_length, threads_created
+    stats = {post_count, edit_count, avg_post_length, threads_created}
     year if year filter is not specified.
     """
     query = _daily_stats_agg_query(session)
@@ -350,7 +359,9 @@ def daily_stats(session, year, bid=None):
     Aggregate (across all users) statistics on posts and threads
 
     Result columns:
-    post_count, edit_count, avg_post_length, threads_created
+    stats = {post_count, edit_count, avg_post_length, threads_created}
+    day_of_year,
+    active_threads
     """
     query = (
         _daily_stats_agg_query(session)
@@ -369,15 +380,16 @@ def daily_statistic(session, statistic, year, bid=None):
     Aggregate (across all users) statistics on posts and threads
 
     Result columns:
-    post_count, edit_count, avg_post_length, threads_created
+    stats = {post_count, edit_count, avg_post_length, threads_created}
+    day_of_year,
+    active_threads
     """
-    sq = daily_stats(session, year, bid).subquery()
-    legal_statistics = list(sq.c.keys())
+    query = daily_stats(session, year, bid)
+    legal_statistics = set(query.subquery().c.keys()) - {'_active_users'} | {'active_users'}
     legal_statistics.remove('day_of_year')
     if statistic not in legal_statistics:
         raise DalParameterError('Invalid statistic %r, choose from: %s' % (statistic, legal_statistics))
 
-    query = session.query(sq.c[statistic].label('statistic'), sq.c.day_of_year, sq.c.active_threads)
     return query
 
 

@@ -195,21 +195,25 @@ def poster_stats():
     if order_by_column not in ('post_count', 'edit_count', 'avg_post_length', 'threads_created', 'quoted_count', 'quotes_count'):
         raise APIError('Invalid order_by_column: %s' % order_by_column)
 
+    query = dal.poster_stats(session, year, bid)
+    order_by_ent = [cd for cd in query.column_descriptions if cd['name'] == order_by_column][0]['expr']
+
     try:
         order_by = {
-            'asc': order_by_column,
-            'desc': desc(order_by_column),
+            'asc': order_by_ent,
+            'desc': desc(order_by_ent),
         }[order]
     except KeyError:
         raise APIError('Invalid order_by: %s' % order)
 
-    query = dal.poster_stats(session, year, bid).order_by(order_by, User.uid)
+    query = query.order_by(order_by, User.uid)
+
 
     if following_ob is not None and following_uid is not None:
         if order == 'asc':
-            query = query.filter(tuple_(column(order_by_column), User.uid) > tuple_(following_ob, following_uid))
+            query = query.having(tuple_(order_by_ent, User.uid) > tuple_(following_ob, following_uid))
         else:
-            query = query.filter(tuple_(column(order_by_column), User.uid) < tuple_(following_ob, following_uid))
+            query = query.having(tuple_(order_by_ent, User.uid) < tuple_(following_ob, following_uid))
     elif (following_ob is None or following_uid is None) and (following_ob is not None or following_uid is not None):
         raise APIError('Need to specify either both or none of following_uid, following_ob.')
 

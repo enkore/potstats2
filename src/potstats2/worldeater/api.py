@@ -109,12 +109,12 @@ class XmlApiConnector:
                 if ot:
                     threads = threads[:threads.index(ot)]
                     yield from threads
+                    print('Fixpoint thread found on page', page)
                     break
-            else:
-                yield from threads
-                if len(threads) < 30:
-                    # last page
-                    break
+            yield from threads
+            if len(threads) < 30:
+                # last page
+                break
             page += 1
 
     def _iter_board_rev(self, bid):

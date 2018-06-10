@@ -2,8 +2,8 @@ import enum
 import sys
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
-    CheckConstraint, func, Enum, Index
-from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression, aliased
+    CheckConstraint, func, Enum, Index, Binary
+from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression, backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert, JSONB, ARRAY
 
@@ -181,7 +181,7 @@ class PostContent(Base):
     title = Column(Unicode)
     content = Column(UnicodeText)
 
-    post = relationship('Post', backref='content')
+    post = relationship('Post', backref=backref('content', uselist=False))
 
 
 class PseudoMaterializedView(Base):

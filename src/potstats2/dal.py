@@ -164,7 +164,7 @@ def poster_stats(session, year=None, bid=None):
         query = query.filter(PosterStats.year == year)
     if bid:
         query = query.filter(PosterStats.bid == bid)
-    return query
+    return query.from_self()
 
 
 def aggregate_stats_segregated_by_time(session, time_column_expression, time_column_name):

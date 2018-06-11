@@ -311,15 +311,12 @@ def daily_stats():
         active_threads.sort(key=lambda thread: thread['thread_post_count'], reverse=True)
         series[-1]['series'][date.weekday()]['extra'] = dict(active_threads=row.active_threads[:5])
 
-    if int(start_date.strftime('%W')) > 0:
-        series.pop(0)
-
-    # Trim first week to actual week length
-    first_weekday = actual_start_date.weekday()
-    series[0]['series'] = series[0]['series'][first_weekday:]
-
-    # Trim last week to actual week length
     if rows:
+        # Trim first week to actual week length
+        first_weekday = actual_start_date.weekday()
+        series[0]['series'] = series[0]['series'][first_weekday:]
+
+        # Trim last week to actual week length
         last_weekday = date.weekday()
         series[-1]['series'] = series[-1]['series'][:last_weekday + 1]
 

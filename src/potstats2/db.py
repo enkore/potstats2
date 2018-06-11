@@ -156,7 +156,7 @@ class Post(Base):
     )
 
     pid = bb_id_column()
-    poster_uid = Column(Integer, ForeignKey('users.uid'))
+    poster_uid = Column(Integer, ForeignKey('users.uid'), index=True)
     tid = Column(Integer, ForeignKey('threads.tid'))
 
     timestamp = Column(TIMESTAMP, index=True)

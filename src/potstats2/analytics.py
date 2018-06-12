@@ -197,12 +197,14 @@ def analyze_post(post, pids, quotes, urls):
             # tid,pid,"user"
             tid, pid, user_name = params.split(',', maxsplit=2)
             pid = int(pid)
+            if pid not in pids:
+                print('PID %d: Quoted PID not on record: %d' % (post.pid, pid))
+                return
         except ValueError as ve:
             print('PID %d: Malformed quote= tag: %r (%s)' % (post.pid, quote_tag, ve))
             return
-
-        if pid not in pids:
-            print('PID %d: Quoted PID not on record: %d' % (post.pid, pid))
+        except OverflowError:
+            print('PID %d: Invalid quoted PID %d' % (post.pid, pid))
             return
 
         quotes.append(dict(pid=post.pid, quoted_pid=pid, count=1))

@@ -7,7 +7,7 @@ from time import perf_counter
 from itertools import chain
 
 import click
-from sqlalchemy import bindparam
+from sqlalchemy import bindparam, and_
 from sqlalchemy.dialects.postgresql import insert
 from pyroaring import BitMap
 
@@ -39,13 +39,19 @@ def main(skip_posts):
 
 
 def iter_posts(session, nchild, pids, chunk_size=10000):
-    pivot = pids[len(pids) // 2]
+    pivots = (pids[len(pids) // 4], pids[len(pids) // 2], pids[len(pids) // 4 * 3])
     if nchild == 0:
-        ec = PostContent.pid < pivot
-        ep = Post.pid < pivot
+        ec = PostContent.pid < pivots[0]
+        ep = Post.pid < pivots[0]
     elif nchild == 1:
-        ec = PostContent.pid >= pivot
-        ep = Post.pid >= pivot
+        ec = and_(PostContent.pid >= pivots[0], PostContent.pid < pivots[1])
+        ep = and_(Post.pid >= pivots[0], Post.pid < pivots[1])
+    elif nchild == 2:
+        ec = and_(PostContent.pid >= pivots[1], PostContent.pid < pivots[2])
+        ep = and_(Post.pid >= pivots[1], Post.pid < pivots[2])
+    elif nchild == 3:
+        ec = PostContent.pid >= pivots[2]
+        ep = Post.pid >= pivots[2]
 
     start_pid = bindparam('start_pid')
     contents = session.query(PostContent).filter(PostContent.pid > start_pid).filter(ec).order_by(PostContent.pid).limit(chunk_size).subquery()
@@ -129,7 +135,7 @@ def analyze_posts(session):
     num_posts = len(pids)
 
     children = {}
-    for nchild in range(2):
+    for nchild in range(4):
         p, c = os.pipe()
         child_pid = os.fork()
         if not child_pid:
@@ -197,7 +203,7 @@ def analyze_post(post, pids, quotes, urls):
             # tid,pid,"user"
             tid, pid, user_name = params.split(',', maxsplit=2)
             pid = int(pid)
-            if pid not in pids:
+            if pid not in pids:  # may raise OverflowError
                 print('PID %d: Quoted PID not on record: %d' % (post.pid, pid))
                 return
         except ValueError as ve:

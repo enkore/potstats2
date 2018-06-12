@@ -199,6 +199,7 @@ def bake_quote_relation(session):
 
 def analyze_post(post, pids, quotes, urls):
     in_tag = False
+    in_quoted_string = False
     capture_contents = False
     current_tag = ''
     tag_contents = ''
@@ -250,10 +251,10 @@ def analyze_post(post, pids, quotes, urls):
         return
 
     for char in post.content:
-        if char == '[':
+        if not in_quoted_string and char == '[':
             in_tag = True
             current_tag = ''
-        elif char == ']':
+        elif not in_quoted_string and char == ']':
             in_tag = False
 
             if current_tag.startswith('quote'):
@@ -287,5 +288,7 @@ def analyze_post(post, pids, quotes, urls):
                     tag_contents = ''
         elif in_tag:
             current_tag += char
+            if char == '"':
+                in_quoted_string = not in_quoted_string
         elif capture_contents:
             tag_contents += char

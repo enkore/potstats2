@@ -63,6 +63,7 @@ def session(db_engine, schema):
 def data(session):
     session.add(db.User(uid=1, gid=2, name='foobar'))
     session.add(db.User(uid=2891831, gid=6, name='schneemann'))
+    session.add(db.User(uid=5000, gid=6, name='[Höhlenmensch]'))
     session.add(db.Category(cid=5, name='Fake Kategorie'))
     session.add(db.Board(bid=7, cid=5, name='Fake Forum für 1 fake Kategorie'))
-    session.add(db.Thread(tid=123123, bid=7, title='Thread1'))
+    session.add(db.Thread(tid=1, bid=7, title='Thread1'))

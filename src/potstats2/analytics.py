@@ -1,9 +1,12 @@
+import sys
 from urllib.parse import urlparse
 from time import perf_counter
+from itertools import chain
 
 import click
 from sqlalchemy import func, bindparam
 from sqlalchemy.dialects.postgresql import insert
+from pyroaring import BitMap
 
 from . import dal, config
 from .db import get_session
@@ -70,8 +73,15 @@ def analyze_posts(session):
     session.query(PostLinks).delete()
 
     num_posts = session.query(Post).count()
+
+    pids = BitMap()
+    for chunk in chunk_query(session.query(Post.pid), Post.pid, chunk_size=100000):
+        pids.update(list(chain.from_iterable(chunk)))
+
+    bitmap_size = len(pids.serialize())
+    print('PID bitmap size %d bytes, %d entries, %d bits per entry' % (bitmap_size, len(pids), bitmap_size / len(pids) * 8))
+
     with ElapsedProgressBar(length=num_posts, label='Analyzing posts') as bar:
-        pids = set([n for n, in session.query(Post.pid)])
         quotes = []
         urls = []
         n = 0
@@ -98,7 +108,7 @@ def analyze_posts(session):
         quotes.clear()
         urls.clear()
 
-    print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(num_posts, bar.elapsed, num_posts / bar.elapsed))
+    print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(bar.pos + n, bar.elapsed, num_posts / bar.elapsed))
 
 
 def aggregate_post_links(session):

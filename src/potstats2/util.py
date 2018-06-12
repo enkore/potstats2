@@ -40,12 +40,11 @@ def chunk_query(query, primary_key, chunk_size=1000):
         q = query
         if last_id is not None:
             q = query.filter(primary_key > last_id)
-        row = None
-        for row in q.order_by(primary_key).limit(chunk_size):
-            yield row
-        if row is None:
+        rows = q.order_by(primary_key).limit(chunk_size).all()
+        yield rows
+        if not rows:
             break
-        last_id = getattr(row, primary_key.name) if row else None
+        last_id = getattr(rows[-1], primary_key.name)
 
 
 class explain(Executable, ClauseElement):

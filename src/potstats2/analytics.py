@@ -1,10 +1,13 @@
+import os
+import signal
+import select
 import sys
 from urllib.parse import urlparse
 from time import perf_counter
 from itertools import chain
 
 import click
-from sqlalchemy import func, bindparam
+from sqlalchemy import func, bindparam, column
 from sqlalchemy.dialects.postgresql import insert
 from pyroaring import BitMap
 
@@ -35,14 +38,23 @@ def main(skip_posts):
     cache.invalidate()
 
 
-def iter_posts(session, chunk_size=10000):
+def iter_posts(session, nchild, pids, chunk_size=10000):
+    pivot = pids[len(pids) // 2]
+    if nchild == 0:
+        ec = PostContent.pid < pivot
+        ep = Post.pid < pivot
+    elif nchild == 1:
+        ec = PostContent.pid >= pivot
+        ep = Post.pid >= pivot
+
     start_pid = bindparam('start_pid')
-    contents = session.query(PostContent).filter(PostContent.pid > start_pid).order_by(PostContent.pid).limit(chunk_size).subquery()
+    contents = session.query(PostContent).filter(PostContent.pid > start_pid).filter(ec).order_by(PostContent.pid).limit(chunk_size).subquery()
     query = (
         session
         .query(Post.pid, Post.poster_uid, contents.c.content, contents.c.title)
         .join(contents, contents.c.pid == Post.pid)
         .filter(Post.pid > start_pid)
+        .filter(ep)
         .order_by(Post.pid)
         .limit(chunk_size)
     )
@@ -71,6 +83,7 @@ def analyze_posts(session):
 
     session.query(PostQuotes).delete()
     session.query(PostLinks).delete()
+    session.commit()
 
     num_posts = session.query(Post).count()
 
@@ -81,34 +94,60 @@ def analyze_posts(session):
     bitmap_size = len(pids.serialize())
     print('PID bitmap size %d bytes, %d entries, %d bits per entry' % (bitmap_size, len(pids), bitmap_size / len(pids) * 8))
 
-    with ElapsedProgressBar(length=num_posts, label='Analyzing posts') as bar:
-        quotes = []
-        urls = []
-        n = 0
+    children = {}
+    for nchild in range(2):
+        p, c = os.pipe()
+        child_pid = os.fork()
+        if not child_pid:
+            progress_fd = c
+            session.close()
+            session = get_session()
 
-        for post in iter_posts(session):
-            analyze_post(post, pids, quotes, urls)
-            n += 1
+            quotes = []
+            urls = []
+            n = 0
 
-            if n > 2000:
-                bar.update(n)
-                n = 0
+            for post in iter_posts(session, nchild, pids):
+                analyze_post(post, pids, quotes, urls)
+                n += 1
 
-            if len(quotes) > 1000:
+                if n > 2000:
+                    os.write(progress_fd, n.to_bytes(4, byteorder='little'))
+                    n = 0
+
+                if len(quotes) > 1000:
+                    session.execute(quote_insert_stmt, quotes)
+                    quotes.clear()
+                if len(urls) > 1000:
+                    session.execute(url_insert_stmt, urls)
+                    urls.clear()
+
+            if quotes:
                 session.execute(quote_insert_stmt, quotes)
-                quotes.clear()
-            if len(urls) > 1000:
+            if urls:
                 session.execute(url_insert_stmt, urls)
-                urls.clear()
+            quotes.clear()
+            urls.clear()
+            session.commit()
 
-        if quotes:
-            session.execute(quote_insert_stmt, quotes)
-        if urls:
-            session.execute(url_insert_stmt, urls)
-        quotes.clear()
-        urls.clear()
+            os.write(progress_fd, n.to_bytes(4, byteorder='little'))
+            os.write(progress_fd, b'\xff' * 4)
+            sys.exit(0)
+        children[p] = child_pid
 
-    print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(bar.pos + n, bar.elapsed, num_posts / bar.elapsed))
+    with ElapsedProgressBar(length=num_posts, label='Analyzing posts') as bar:
+        while children:
+            r, w, x = select.select(list(children), [], [])
+            for fd in r:
+                v = os.read(fd, 4)
+                if v == b'\xff' * 4:
+                    pid = children.pop(fd)
+                    os.kill(pid, signal.SIGKILL)
+                    os.waitpid(pid, 0)
+                else:
+                    bar.update(int.from_bytes(v, byteorder='little'))
+
+    print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(bar.pos, bar.elapsed, num_posts / bar.elapsed))
 
 
 def aggregate_post_links(session):

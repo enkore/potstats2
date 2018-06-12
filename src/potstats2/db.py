@@ -1,5 +1,6 @@
 import enum
 import sys
+import os
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
     CheckConstraint, func, Enum, Index, Binary
@@ -24,9 +25,9 @@ _global_session = None
 def get_session():
     # not thread safe but if you do that you're an idiot anyway ¯\_(ツ)_/¯
     global _global_session
-    if not _global_session:
-        _global_session = sessionmaker(bind=get_engine())
-    return _global_session()
+    if not _global_session or _global_session[1] != os.getpid():
+        _global_session = sessionmaker(bind=get_engine()), os.getpid()
+    return _global_session[0]()
 
 
 @click.group()

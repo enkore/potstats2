@@ -7,7 +7,7 @@ from time import perf_counter
 from itertools import chain
 
 import click
-from sqlalchemy import func, bindparam, column
+from sqlalchemy import bindparam
 from sqlalchemy.dialects.postgresql import insert
 from pyroaring import BitMap
 
@@ -68,7 +68,7 @@ def iter_posts(session, nchild, pids, chunk_size=10000):
         last_pid = posts[-1].pid
 
 
-def analyze_posts(session):
+def analyze_posts_process(nchild, progress_fd, pids):
     quote_insert_stmt = insert(PostQuotes.__table__)
     quote_insert_stmt = quote_insert_stmt.on_conflict_do_update(
         index_elements=PostQuotes.__table__.primary_key.columns,
@@ -81,18 +81,52 @@ def analyze_posts(session):
         set_=dict(count=url_insert_stmt.excluded.count + PostLinks.__table__.c.count)
     )
 
-    session.query(PostQuotes).delete()
-    session.query(PostLinks).delete()
+    session = get_session()
+
+    quotes = []
+    urls = []
+    n = 0
+
+    for post in iter_posts(session, nchild, pids):
+        analyze_post(post, pids, quotes, urls)
+        n += 1
+
+        if n > 2000:
+            os.write(progress_fd, n.to_bytes(4, byteorder='little'))
+            n = 0
+
+        if len(quotes) > 1000:
+            session.execute(quote_insert_stmt, quotes)
+            quotes.clear()
+        if len(urls) > 1000:
+            session.execute(url_insert_stmt, urls)
+            urls.clear()
+
+    if quotes:
+        session.execute(quote_insert_stmt, quotes)
+    if urls:
+        session.execute(url_insert_stmt, urls)
+    quotes.clear()
+    urls.clear()
     session.commit()
 
-    num_posts = session.query(Post).count()
+    os.write(progress_fd, n.to_bytes(4, byteorder='little'))
+    os.write(progress_fd, b'\xff' * 4)
 
+
+def analyze_posts(session):
     pids = BitMap()
     for chunk in chunk_query(session.query(Post.pid), Post.pid, chunk_size=100000):
         pids.update(list(chain.from_iterable(chunk)))
 
     bitmap_size = len(pids.serialize())
     print('PID bitmap size %d bytes, %d entries, %d bits per entry' % (bitmap_size, len(pids), bitmap_size / len(pids) * 8))
+
+    session.query(PostQuotes).delete()
+    session.query(PostLinks).delete()
+    session.commit()
+
+    num_posts = len(pids)
 
     children = {}
     for nchild in range(2):
@@ -101,37 +135,7 @@ def analyze_posts(session):
         if not child_pid:
             progress_fd = c
             session.close()
-            session = get_session()
-
-            quotes = []
-            urls = []
-            n = 0
-
-            for post in iter_posts(session, nchild, pids):
-                analyze_post(post, pids, quotes, urls)
-                n += 1
-
-                if n > 2000:
-                    os.write(progress_fd, n.to_bytes(4, byteorder='little'))
-                    n = 0
-
-                if len(quotes) > 1000:
-                    session.execute(quote_insert_stmt, quotes)
-                    quotes.clear()
-                if len(urls) > 1000:
-                    session.execute(url_insert_stmt, urls)
-                    urls.clear()
-
-            if quotes:
-                session.execute(quote_insert_stmt, quotes)
-            if urls:
-                session.execute(url_insert_stmt, urls)
-            quotes.clear()
-            urls.clear()
-            session.commit()
-
-            os.write(progress_fd, n.to_bytes(4, byteorder='little'))
-            os.write(progress_fd, b'\xff' * 4)
+            analyze_posts_process(nchild, progress_fd, pids)
             sys.exit(0)
         children[p] = child_pid
 

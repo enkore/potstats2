@@ -7,7 +7,7 @@ from time import perf_counter
 from itertools import chain
 
 import click
-from sqlalchemy import bindparam, and_
+from sqlalchemy import bindparam, and_, func
 from sqlalchemy.dialects.postgresql import insert
 from pyroaring import BitMap
 
@@ -122,8 +122,16 @@ def analyze_posts_process(nchild, progress_fd, pids):
 
 def analyze_posts(session):
     pids = BitMap()
-    for chunk in chunk_query(session.query(Post.pid), Post.pid, chunk_size=100000):
-        pids.update(list(chain.from_iterable(chunk)))
+    last_pid = None
+    while True:
+        query = session.query(Post.pid)
+        if last_pid:
+            query = query.filter(Post.pid > last_pid)
+        chunk = query.order_by(Post.pid).limit(100000).from_self(func.array_agg(Post.pid)).all()[0][0]
+        if not chunk:
+            break
+        last_pid = chunk[-1]
+        pids.update(chunk)
 
     bitmap_size = len(pids.serialize())
     print('PID bitmap size %d bytes, %d entries, %d bits per entry' % (bitmap_size, len(pids), bitmap_size / len(pids) * 8))

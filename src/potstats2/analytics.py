@@ -305,18 +305,21 @@ def parse_user_profiles(session):
             parse_user_profile(session, mmu.user, page)
 
 
-def parse_user_profile(session, user, page):
+def get_user_tier(session, user, page):
     def strip_extra_url_stuff(src):
         prefix = 'http://forum.mods.de/bb/img/rank/'
         assert src.startswith(prefix)
         assert src.endswith('.gif')
         return src[len(prefix):-len('.gif')]
 
+    bars_img = page.cssselect('td.vam.avatar img[alt="*"]')
     tier_name = page.cssselect('span.rang')[0].text
     if user.uid == 28377:
         assert not tier_name
         tier_name = 'enos'
     else:
+        if not tier_name and not bars_img:
+            return None
         assert tier_name
 
     bar_map = {
@@ -331,7 +334,7 @@ def parse_user_profile(session, user, page):
         'hellblau': 'h',
     }
 
-    bars_img = page.cssselect('td.vam.avatar img[alt="*"]')
+
     if len(bars_img) in (9, 11):
         # Usually 11, but some ranks miss links|rechts, making it 9. E.g. UID#12216.
         bars = []
@@ -366,8 +369,12 @@ def parse_user_profile(session, user, page):
             tier_bar = ''.join(bars)
             tier_type = TierType.special
 
-    user.tier = session.query(UserTier).filter_by(name=tier_name, bars=tier_bar, type=tier_type).one_or_none() \
-                or UserTier(name=tier_name, bars=tier_bar, type=tier_type)
+    return session.query(UserTier).filter_by(name=tier_name, bars=tier_bar, type=tier_type).one_or_none() \
+           or UserTier(name=tier_name, bars=tier_bar, type=tier_type)
+
+
+def parse_user_profile(session, user, page):
+    user.tier = get_user_tier(session, user, page)
 
     kv_trs = page.cssselect('#content tr:not(.bar)')[:5]
     for key_value_tr in kv_trs:

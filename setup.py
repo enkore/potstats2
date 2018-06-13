@@ -1,6 +1,17 @@
-
+import os
+import os.path
 from setuptools import setup, find_packages
 
+
+def package_files(directory):
+    paths = []
+    for (path, directories, filenames) in os.walk(directory):
+        for filename in filenames:
+            paths.append(os.path.join('..', path, filename))
+    return paths
+
+
+extra_files = package_files('alembic') + ['alembic.ini']
 description = open('README.rst', 'r').read()
 
 setup(
@@ -48,6 +59,7 @@ setup(
 
     packages=find_packages('src'),
     package_dir={'': 'src'},
+    package_files={'': extra_files},
 
     entry_points = {
         'console_scripts': [

@@ -1,6 +1,7 @@
 import enum
 import sys
 import os
+import pkg_resources
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
     CheckConstraint, func, Enum, Index, Binary, MetaData
@@ -48,6 +49,13 @@ def shell():
     locals.update(globals())
     code.interact(local=locals, banner='>>> session=get_session()\n'
                                        '>>> from potstats2.db import *', exitmsg='')
+
+
+@main.command()
+def alembic():
+    path = pkg_resources.get_distribution('potstats2').location
+    os.chdir(path)
+    os.execvp('alembic', sys.argv[1:])
 
 
 convention = {

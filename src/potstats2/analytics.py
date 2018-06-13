@@ -319,21 +319,22 @@ def parse_user_profile(session, user, page):
     else:
         assert tier_name
 
+    bar_map = {
+        'links': None,
+        'rechts': None,
+        'orange': 'o',
+        'gruen': 'g',
+        'schwarz': 's',
+        'empty': 'e',
+        'rot': 'r',
+        'blau': 'b',
+        'hellblau': 'h',
+    }
+
     bars_img = page.cssselect('td.vam.avatar img[alt="*"]')
     if len(bars_img) in (9, 11):
         # Usually 11, but some ranks miss links|rechts, making it 9. E.g. UID#12216.
         bars = []
-        bar_map = {
-            'links': None,
-            'rechts': None,
-            'orange': 'o',
-            'gruen': 'g',
-            'schwarz': 's',
-            'empty': 'e',
-            'rot': 'r',
-            'blau': 'b',
-            'hellblau': 'h',
-        }
 
         for bar_img in bars_img:
             src = strip_extra_url_stuff(bar_img.attrib['src'])
@@ -354,6 +355,15 @@ def parse_user_profile(session, user, page):
         srcs = [strip_extra_url_stuff(img.attrib['src']) for img in bars_img]
         if set(srcs) == {'herz1'}:
             tier_bar = 'herz1'
+            tier_type = TierType.special
+        else:
+            # UID#143
+            bars = []
+            for src in srcs:
+                mapped = bar_map[src]
+                if mapped:
+                    bars.append(mapped)
+            tier_bar = ''.join(bars)
             tier_type = TierType.special
 
     user.tier = session.query(UserTier).filter_by(name=tier_name, bars=tier_bar, type=tier_type).one_or_none() \

@@ -320,7 +320,8 @@ def parse_user_profile(session, user, page):
         assert tier_name
 
     bars_img = page.cssselect('td.vam.avatar img[alt="*"]')
-    if len(bars_img) == 11:
+    if len(bars_img) in (9, 11):
+        # Usually 11, but some ranks miss links|rechts, making it 9. E.g. UID#12216.
         bars = []
         bar_map = {
             'links': None,

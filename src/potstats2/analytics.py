@@ -134,7 +134,7 @@ def analyze_posts(session):
         pids.update(chunk)
 
     bitmap_size = len(pids.serialize())
-    print('PID bitmap size %d bytes, %d entries, %d bits per entry' % (bitmap_size, len(pids), bitmap_size / len(pids) * 8))
+    print('PID bitmap size %d bytes, %d entries, %.2f bits per entry' % (bitmap_size, len(pids), bitmap_size / len(pids) * 8))
 
     session.query(PostQuotes).delete()
     session.query(PostLinks).delete()

@@ -5,9 +5,9 @@ import click
 from sqlalchemy import func, desc, event
 from sqlalchemy.orm.attributes import set_attribute
 
-from .api import XmlApiConnector
+from .api import XmlApiConnector, ProfileNotFoundError, UnreachableProfileError
 from ..config import setup_debugger
-from ..db import get_session, Category, Board, Thread, Post, PostContent, User, WorldeaterState, WorldeaterThreadsNeedingUpdate
+from ..db import get_session, Category, Board, Thread, Post, PostContent, User, WorldeaterState, WorldeaterThreadsNeedingUpdate, MyModsUserStaging
 from ..util import ElapsedProgressBar
 from ..backend import cache
 
@@ -211,6 +211,32 @@ def process_board(api, session, bid, force_initial_pass):
     session.commit()
 
 
+def sync_my_mods_profiles(api, session):
+    unreachable = []
+    not_found = []
+
+    with ElapsedProgressBar(session.query(User).all(), label='Syncing my.mods.de user profiles', show_pos=True) as bar:
+        for dbuser in bar:
+            try:
+                profile_contents = api.user(dbuser.uid)
+            except UnreachableProfileError as upe:
+                print(upe)
+                unreachable.append(upe.args)
+                continue
+            except ProfileNotFoundError as pnfe:
+                print(pnfe)
+                not_found.append(dbuser.uid)
+                continue
+
+            mmu = session.query(MyModsUserStaging).get(dbuser.uid) or MyModsUserStaging(user=dbuser)
+            mmu.html = profile_contents
+            session.add(mmu)
+
+    print('Unreachable profiles (%d):' % len(unreachable), ', '.join('%d (aliased by %d)' % u for u in unreachable))
+    print('Profiles not found (%d):' % len(not_found), ', '.join(map(str, not_found)))
+    session.commit()
+
+
 class StateTracker:
     def __init__(self, api, session):
         self.api = api
@@ -233,7 +259,8 @@ class StateTracker:
 @click.option('--board-id', default=53)
 @click.option('--only-tnu', default=False, is_flag=True)
 @click.option('--force-initial-pass', default=False, is_flag=True)
-def main(board_id, only_tnu, force_initial_pass):
+@click.option('--my-mods-profiles', default=False, is_flag=True)
+def main(board_id, only_tnu, force_initial_pass, my_mods_profiles):
     setup_debugger()
     print('nomnomnom')
     api = XmlApiConnector()
@@ -252,6 +279,9 @@ def main(board_id, only_tnu, force_initial_pass):
         process_board(api, session, board_id, force_initial_pass=force_initial_pass)
 
         process_threads_needing_update(api, session)
+
+        if my_mods_profiles:
+            sync_my_mods_profiles(api, session)
 
     st.update()
 

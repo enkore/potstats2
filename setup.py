@@ -14,7 +14,9 @@ setup(
         'sqlalchemy',
         'Flask',
         'psycopg2',
-        'pyroaring'
+        'pyroaring',
+        'alembic',
+        'lxml'
     ],
     tests_require=[
         'potstats2[test]',

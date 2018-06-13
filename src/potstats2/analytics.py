@@ -1,3 +1,4 @@
+import datetime
 import os
 import signal
 import select
@@ -10,12 +11,14 @@ import click
 from sqlalchemy import bindparam, and_, func
 from sqlalchemy.dialects.postgresql import insert
 from pyroaring import BitMap
+from lxml import html
 
 from . import dal, config
-from .db import get_session
+from .db import get_session, TierType
 from .db import Post, PostContent
 from .db import PostLinks, PostQuotes, LinkRelation, LinkType
 from .db import PosterStats, DailyStats, QuoteRelation
+from .db import User, MyModsUserStaging, UserTier, AccountState
 from .util import ElapsedProgressBar, chunk_query
 
 
@@ -28,6 +31,7 @@ def main(skip_posts):
     if not skip_posts:
         analyze_posts(session)
 
+    parse_user_profiles(session)
     aggregate_post_links(session)
     bake_poster_stats(session)
     bake_daily_stats(session)
@@ -292,3 +296,102 @@ def analyze_post(post, pids, quotes, urls):
                 in_quoted_string = not in_quoted_string
         elif capture_contents:
             tag_contents += char
+
+
+def parse_user_profiles(session):
+    with ElapsedProgressBar(session.query(MyModsUserStaging).all(), label='Parsing user profiles', show_pos=True) as bar:
+        for mmu in bar:
+            page = html.fromstring(mmu.html)
+            parse_user_profile(session, mmu.user, page)
+
+
+def parse_user_profile(session, user, page):
+    def strip_extra_url_stuff(src):
+        prefix = 'http://forum.mods.de/bb/img/rank/'
+        assert src.startswith(prefix)
+        assert src.endswith('.gif')
+        return src[len(prefix):-len('.gif')]
+
+    tier_name = page.cssselect('span.rang')[0].text
+    if user.uid == 28377:
+        assert not tier_name
+        tier_name = 'enos'
+    else:
+        assert tier_name
+
+    bars_img = page.cssselect('td.vam.avatar img[alt="*"]')
+    if len(bars_img) == 11:
+        bars = []
+        bar_map = {
+            'links': None,
+            'rechts': None,
+            'orange': 'o',
+            'gruen': 'g',
+            'schwarz': 's',
+            'empty': 'e',
+            'rot': 'r',
+            'blau': 'b',
+            'hellblau': 'h',
+        }
+
+        for bar_img in bars_img:
+            src = strip_extra_url_stuff(bar_img.attrib['src'])
+            mapped = bar_map[src]
+            if mapped:
+                bars.append(mapped)
+
+        tier_bar = ''.join(bars)
+        tier_type = TierType.standard
+    elif len(bars_img) == 1:
+        src = strip_extra_url_stuff(bars_img[0].attrib['src'])
+        tier_bar = src
+        tier_type = TierType.special
+    elif len(bars_img) == 0:
+        tier_bar = ''
+        tier_type = TierType.special
+    elif len(bars_img) == 7:
+        srcs = [strip_extra_url_stuff(img.attrib['src']) for img in bars_img]
+        if set(srcs) == {'herz1'}:
+            tier_bar = 'herz1'
+            tier_type = TierType.special
+
+    user.tier = session.query(UserTier).filter_by(name=tier_name, bars=tier_bar, type=tier_type).one_or_none() \
+                or UserTier(name=tier_name, bars=tier_bar, type=tier_type)
+
+    kv_trs = page.cssselect('#content tr:not(.bar)')[:5]
+    for key_value_tr in kv_trs:
+        key = key_value_tr.cssselect('.attrn')[0].text
+        value = key_value_tr.cssselect('.attrv')[0].text
+
+        if user.uid == 1 and key in ('Dabei seit:', 'Zuletzt im Board:'):
+            # <!-- seit grauer Vorzeit. -->
+            # <!-- genau jetzt. -->
+            user.registered = None
+            user.last_seen = None
+            continue
+
+        if key == 'Benutzername:':
+            continue
+        elif key == 'Dabei seit:':
+            date = ' '.join(value.split(' ')[:2])
+            user.registered = datetime.datetime.strptime(date, FORUM_DATETIME_FORMAT_NO_SECONDS)
+        elif key == 'Zuletzt im Board:':
+            maybe_private = key_value_tr.cssselect('.attrv em')
+            if maybe_private:
+                assert maybe_private[0].text == 'privat'
+                user.last_seen = None
+            else:
+                user.last_seen = datetime.datetime.strptime(value, FORUM_DATETIME_FORMAT_NO_SECONDS)
+        elif key == 'Status:':
+            user.online_status = value
+        elif key == 'Accountstatus:':
+            if value == 'aktiv':
+                user.account_state = AccountState.active
+            elif value == 'gesperrt':
+                user.account_state =AccountState.locked
+            else:
+                assert False, 'Unknown account state %r' % value
+
+    user.user_profile_exists = True
+
+FORUM_DATETIME_FORMAT_NO_SECONDS = '%d.%m.%Y %H:%M'

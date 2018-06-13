@@ -3,7 +3,7 @@ import sys
 import os
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
-    CheckConstraint, func, Enum, Index, Binary
+    CheckConstraint, func, Enum, Index, Binary, MetaData
 from sqlalchemy.orm import sessionmaker, relationship, Query, Session, query_expression, backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert, JSONB, ARRAY
@@ -50,7 +50,15 @@ def shell():
                                        '>>> from potstats2.db import *', exitmsg='')
 
 
-Base = declarative_base()
+convention = {
+  "ix": 'ix_%(column_0_label)s',
+  "uq": "uq_%(table_name)s_%(column_0_name)s",
+  "ck": "ck_%(table_name)s_%(constraint_name)s",
+  "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+  "pk": "pk_%(table_name)s"
+}
+
+Base = declarative_base(metadata=MetaData(naming_convention=convention))
 
 
 def bb_id_column():
@@ -58,8 +66,34 @@ def bb_id_column():
     return Column(Integer, primary_key=True, autoincrement=False)
 
 
+class TierType(enum.Enum):
+    standard = 1
+    special = 2
+
+
+class UserTier(Base):
+    __tablename__ = 'user_tiers'
+    __table_args__ = (
+        Index('uniq', 'name', 'bars', 'type', unique=True),
+    )
+
+    tied = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(Unicode)
+    bars = Column(Unicode)
+    type = Column(Enum(TierType))
+
+
+class AccountState(enum.Enum):
+    active = 1
+    locked_temp = 2
+    locked = 3
+
+
 class User(Base):
     __tablename__ = 'users'
+    __table_args__ = (
+        CheckConstraint("account_state = 'locked_temp' or locked_until is null", name='complete_requires_closed'),
+    )
 
     uid = bb_id_column()
     # group-id, Nutzergruppe, nicht Nutzerrank,
@@ -67,6 +101,19 @@ class User(Base):
     gid = Column(Integer)
     # Keine Konsistenz garantiert, insbesondere keine Einmaligkeit (zumindest theoretisch)
     name = Column(Unicode)
+
+    user_profile_exists = Column(Boolean, default=False)
+
+    tied = Column(Integer, ForeignKey('user_tiers.tied'))
+
+    registered = Column(TIMESTAMP)
+    online_status = Column(Unicode)
+    last_seen = Column(TIMESTAMP)  # null: private
+
+    account_state = Column(Enum(AccountState))
+    locked_until = Column(Unicode)
+
+    tier = relationship('UserTier')
 
     @classmethod
     def from_xml(cls, session, user_tag):
@@ -80,6 +127,15 @@ class User(Base):
         )
         session.add(user)
         return user
+
+
+class MyModsUserStaging(Base):
+    __tablename__ = 'my_mods_users'
+
+    uid = Column(Integer, ForeignKey('users.uid'), primary_key=True)
+    html = Column(UnicodeText)
+
+    user = relationship('User', backref=backref('my_mods', uselist=False), lazy='joined')
 
 
 class Category(Base):

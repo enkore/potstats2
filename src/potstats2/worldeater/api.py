@@ -26,6 +26,17 @@ class InvalidThreadError(RuntimeError):
         return 'Invalid thread specified: bid=%d' % self.args
 
 
+class UnreachableProfileError(RuntimeError):
+    def __str__(self):
+        return 'The profile of the user (UID %d) cannot be reached, ' \
+               'because it is shadowed by the name of a different user (UID %d)' % self.args
+
+
+class ProfileNotFoundError(RuntimeError):
+    def __str__(self):
+        return 'Profile not found for UID %d' % self.args
+
+
 def b2i(boolean):
     return '1' if boolean else '0'
 
@@ -92,6 +103,30 @@ class XmlApiConnector:
         for tag in re.findall('.//a'):
             tags.append(tag.text)
         return tags
+
+    def user(self, uid):
+        response = self.session.get('http://my.mods.de/%d' % uid)
+        self.num_requests += 1
+        time.sleep(self.request_delay)
+
+        content = response.content.decode('ISO-8859-15')
+
+        if content.startswith('Benutzer') and content.endswith('nicht gefunden!'):
+            raise ProfileNotFoundError(uid)
+
+        # Right after the <html> tag there is a small section with information on the profile:
+        #  <!-- UID 1224901 -->
+        #  <!-- P 20 -->
+        #  <!-- L 0 -->
+        # It's unclear what "P" and "L" are, but they're different for some users.
+        uid_marker = '<html xmlns="http://www.w3.org/1999/xhtml">\n<!-- UID'
+        begin_uid = content.index(uid_marker) + len(uid_marker)
+        end_uid = content.index('-->', begin_uid)
+        profile_uid = int(content[begin_uid:end_uid])
+        if profile_uid != uid:
+            raise UnreachableProfileError(uid, profile_uid)
+
+        return content
 
     # generators
 

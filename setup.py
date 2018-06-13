@@ -17,7 +17,8 @@ setup(
         'psycopg2',
         'pyroaring',
         'alembic',
-        'lxml'
+        'lxml',
+        'cssselect',
     ],
     tests_require=[
         'potstats2[test]',

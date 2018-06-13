@@ -371,7 +371,10 @@ def parse_user_profile(session, user, page):
             continue
 
         if key == 'Benutzername:':
-            continue
+            value = key_value_tr.cssselect('.attrv div')[0].tail.strip()
+            if value != user.name:
+                assert value
+                user.name = value
         elif key == 'Dabei seit:':
             date = ' '.join(value.split(' ')[:2])
             user.registered = datetime.datetime.strptime(date, FORUM_DATETIME_FORMAT_NO_SECONDS)

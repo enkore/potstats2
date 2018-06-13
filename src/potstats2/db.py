@@ -96,6 +96,7 @@ class AccountState(enum.Enum):
     active = 1
     locked_temp = 2
     locked = 3
+    not_unlocked = 4
 
 
 class User(Base):

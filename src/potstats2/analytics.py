@@ -406,12 +406,19 @@ def parse_user_profile(session, user, page):
         elif key == 'Status:':
             user.online_status = value
         elif key == 'Accountstatus:':
-            user.account_state = {
-                'aktiv': AccountState.active,
-                'gesperrt': AccountState.locked,
-                'noch nicht freigeschaltet': AccountState.not_unlocked,
-            }[value]
+            if value.startswith('gesperrt bis'):
+                value = value[len('gesperrt bis '):]
+                user.account_state = AccountState.locked_temp
+                user.locked_until = datetime.datetime.strptime(value, FORUM_DATE_FORMAT)
+            else:
+                user.account_state = {
+                    'aktiv': AccountState.active,
+                    'gesperrt': AccountState.locked,
+                    'noch nicht freigeschaltet': AccountState.not_unlocked,
+                }[value]
+                user.locked_until = None
 
     user.user_profile_exists = True
 
 FORUM_DATETIME_FORMAT_NO_SECONDS = '%d.%m.%Y %H:%M'
+FORUM_DATE_FORMAT = '%d.%m.%Y'

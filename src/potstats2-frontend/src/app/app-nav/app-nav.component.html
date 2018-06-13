@@ -6,9 +6,9 @@
     [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
     [mode]="(isHandset$ | async) ? 'over' : 'side'"
     [opened]="!(isHandset$ | async)">
-    <mat-toolbar color="primary">Menu</mat-toolbar>
-
-    &nbsp;
+    <mat-toolbar color="primary">
+      <div>pOTStats <small>2.0</small></div>
+    </mat-toolbar>
 
     <mat-nav-list>
       <mat-list-item>
@@ -50,6 +50,10 @@
         *ngIf="isHandset$ | async">
         <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
       </button>
+
+      <div>
+        <small>Ein pOTsches Informationsportal</small>
+      </div>
     </mat-toolbar>
     <div>
       <router-outlet></router-outlet>

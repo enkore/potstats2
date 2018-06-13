@@ -2,16 +2,6 @@ import os
 import os.path
 from setuptools import setup, find_packages
 
-
-def package_files(directory):
-    paths = []
-    for (path, directories, filenames) in os.walk(directory):
-        for filename in filenames:
-            paths.append(os.path.join('..', path, filename))
-    return paths
-
-
-extra_files = package_files('alembic') + ['alembic.ini']
 description = open('README.rst', 'r').read()
 
 setup(
@@ -57,9 +47,9 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
 
-    packages=find_packages('src'),
+    packages=find_packages('src') + ['potstats2.alembic'],
     package_dir={'': 'src'},
-    package_files={'': extra_files},
+    include_package_data=True,
 
     entry_points = {
         'console_scripts': [

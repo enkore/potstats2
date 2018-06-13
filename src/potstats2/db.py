@@ -1,7 +1,6 @@
 import enum
 import sys
 import os
-import pkg_resources
 
 from sqlalchemy import create_engine, Column, ForeignKey, Integer, Unicode, UnicodeText, Boolean, TIMESTAMP, \
     CheckConstraint, func, Enum, Index, Binary, MetaData
@@ -11,6 +10,7 @@ from sqlalchemy.dialects.postgresql import insert, JSONB, ARRAY
 
 import click
 
+import potstats2
 from . import config
 
 
@@ -52,10 +52,11 @@ def shell():
 
 
 @main.command()
-def alembic():
-    path = pkg_resources.get_distribution('potstats2').location
+@click.argument('cmdline', nargs=-1)
+def alembic(cmdline):
+    path = os.path.join(potstats2.__path__[0], 'alembic')
     os.chdir(path)
-    os.execvp('alembic', sys.argv[1:])
+    os.execlp('alembic', 'alembic', '-c', os.path.join(path, 'alembic.ini'), *cmdline)
 
 
 convention = {

@@ -1,0 +1,4 @@
+include src/potstats2/alembic/*
+include src/potstats2/alembic/versions/*
+
+

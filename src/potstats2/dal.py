@@ -317,10 +317,13 @@ def _daily_stats_agg_query(session):
     class DailyStatsBundle(Bundle):
         def create_row_processor(self, query, procs, labels):
             """Override create_row_processor to return values as dictionaries"""
+            from pyroaring import BitMap
 
             def proc(row):
                 row = dict(zip(labels, (proc(row) for proc in procs)))
-                row['active_users'] = len(set([uid for uids in row.pop('_active_users') for uid in uids]))
+                bm = BitMap()
+                bm.update(*map(BitMap, row.pop('_active_users')))
+                row['active_users'] = len(bm)
                 return row
             return proc
 

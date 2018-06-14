@@ -45,6 +45,8 @@ def cache_api_view(view):
 
     @functools.wraps(view)
     def cache_frontend(*args, **kwargs):
+        if 'nocache' in request.args:
+            return view(*args, **kwargs)
         key = cache_key(view, args, kwargs, request)
         etag = key[:32]
         cached = cache_db.get(key)

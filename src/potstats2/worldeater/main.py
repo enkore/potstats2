@@ -72,7 +72,13 @@ def merge_posts(session, dbthread, posts):
         post_content.content = post.find('./message/content').text
         post_content.title = post.find('./message/title').text
         dbpost.content = post_content
-        dbpost.content_length = len(post_content.content)
+        if post_content.content is None:
+            # If the complete message contents evaluate false-y in PHP, they are not rendered in the
+            # XML API. Instead, an empty tag is presented. Empty tags have None .text
+            # (And nothing of value was lost)
+            dbpost.content_length = 0
+        else:
+            dbpost.content_length = len(post_content.content)
 
         is_hidden = post.attrib.get('is-hidden', '')
         if is_hidden:

@@ -7,7 +7,8 @@ from sqlalchemy.orm.attributes import set_attribute
 
 from .api import XmlApiConnector, ProfileNotFoundError, UnreachableProfileError
 from ..config import setup_debugger
-from ..db import get_session, Category, Board, Thread, Post, PostContent, User, WorldeaterState, WorldeaterThreadsNeedingUpdate, MyModsUserStaging
+from ..db import get_session, Category, Board, Thread, Post, PostContent, User, WorldeaterState, \
+    WorldeaterThreadsNeedingUpdate, MyModsUserStaging, Avatar
 from ..util import ElapsedProgressBar
 from ..backend import cache
 
@@ -71,6 +72,10 @@ def merge_posts(session, dbthread, posts):
         icon_tag = post.find('./icon')
         if icon_tag:
             post.icon_id = int(icon_tag.attrib['id'])
+
+        avatar_tag = post.find('./avatar')
+        if avatar_tag:
+            dbpost.poster.avatar = Avatar.from_xml(session, avatar_tag)
 
         post_content = session.query(PostContent).get(pid) or PostContent(pid=pid)
         post_content.content = post.find('./message/content').text

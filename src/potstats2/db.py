@@ -120,6 +120,7 @@ class User(Base):
     user_profile_exists = Column(Boolean, default=False)
 
     tied = Column(Integer, ForeignKey('user_tiers.tied'))
+    avid = Column(Integer, ForeignKey('avatars.avid'))
 
     registered = Column(TIMESTAMP)
     online_status = Column(Unicode)
@@ -129,6 +130,7 @@ class User(Base):
     locked_until = Column(Unicode)
 
     tier = relationship('UserTier')
+    avatar = relationship('Avatar')
 
     @classmethod
     def from_xml(cls, session, user_tag, timestamp: datetime.datetime):
@@ -161,6 +163,25 @@ class User(Base):
     @property
     def names(self):
         return [self.name] + self.aliases
+
+
+class Avatar(Base):
+    __tablename__ = 'avatars'
+
+    avid = bb_id_column()
+    path = Column(Unicode, nullable=False)
+
+    @classmethod
+    def from_xml(cls, session, avatar_tag):
+        try:
+            avid = int(avatar_tag.attrib['id'])
+        except KeyError:
+            return None
+        path = avatar_tag.text
+        avatar = session.query(cls).get(avid) or cls(avid=avid)
+        session.add(avatar)
+        avatar.path = path
+        return avatar
 
 
 class MyModsUserStaging(Base):

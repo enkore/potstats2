@@ -68,6 +68,10 @@ def merge_posts(session, dbthread, posts):
             dbpost.last_edit_timestamp = datetime_from_xml(edited.find('./lastedit/date'))
             dbpost.last_edit_user = User.from_xml(session, edited.find('./lastedit/user'), dbpost.last_edit_timestamp)
 
+        icon_tag = post.find('./icon')
+        if icon_tag:
+            post.icon_id = int(icon_tag.attrib['id'])
+
         post_content = session.query(PostContent).get(pid) or PostContent(pid=pid)
         post_content.content = post.find('./message/content').text
         post_content.title = post.find('./message/title').text

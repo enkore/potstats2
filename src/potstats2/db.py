@@ -259,6 +259,7 @@ class Post(Base):
     is_hidden = Column(Boolean)
 
     content_length = Column(Integer)
+    icon_id = Column(Integer)
 
     poster = relationship('User', foreign_keys=poster_uid)
     last_edit_user = relationship('User', foreign_keys=last_edit_uid)

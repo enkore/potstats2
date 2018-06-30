@@ -60,13 +60,13 @@ def merge_posts(session, dbthread, posts):
         # We roundtrip to the DB for each post here, but that's most likely not a problem
         # because we get at most 30 posts per 0.2 s (API rate limiting and network speed).
         dbpost = session.query(Post).get(pid) or Post(pid=pid, thread=dbthread)
-        dbpost.poster = User.from_xml(session, post.find('./user'))
         dbpost.timestamp = datetime_from_xml(post.find('./date'))
+        dbpost.poster = User.from_xml(session, post.find('./user'), dbpost.timestamp)
         edited = post.find('./message/edited')
         dbpost.edit_count = int(edited.attrib['count'])
         if dbpost.edit_count:
-            dbpost.last_edit_user = User.from_xml(session, edited.find('./lastedit/user'))
             dbpost.last_edit_timestamp = datetime_from_xml(edited.find('./lastedit/date'))
+            dbpost.last_edit_user = User.from_xml(session, edited.find('./lastedit/user'), dbpost.last_edit_timestamp)
 
         post_content = session.query(PostContent).get(pid) or PostContent(pid=pid)
         post_content.content = post.find('./message/content').text

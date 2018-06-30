@@ -1,3 +1,4 @@
+import datetime
 import enum
 import sys
 import os
@@ -110,7 +111,11 @@ class User(Base):
     # z.B. group-id=3 sind Plebs, group-id=6 sind Mods, group-id=1 sind Admins.
     gid = Column(Integer)
     # Keine Konsistenz garantiert, insbesondere keine Einmaligkeit (zumindest theoretisch)
+    # Der zuletzt gesehene Name
     name = Column(Unicode)
+    name_timestamp = Column(TIMESTAMP, default=datetime.datetime.utcfromtimestamp(0))
+    # [str]
+    aliases = Column(JSONB, default=lambda: [])
 
     user_profile_exists = Column(Boolean, default=False)
 
@@ -126,17 +131,36 @@ class User(Base):
     tier = relationship('UserTier')
 
     @classmethod
-    def from_xml(cls, session, user_tag):
+    def from_xml(cls, session, user_tag, timestamp: datetime.datetime):
         uid = int(user_tag.attrib['id'])
         try:
             gid = int(user_tag.attrib['group-id'])
         except KeyError:
             gid = None  # not all <user> tags have this
-        user = session.query(cls).get(uid) or cls(
-            uid=uid, gid=gid, name=user_tag.text,
-        )
-        session.add(user)
+        current_name = user_tag.text
+        user = session.query(cls).get(uid)
+        # Too lazy for tz-aware timestamps in the DB
+        timestamp = timestamp.replace(tzinfo=None)
+        if user:
+            if user.name != current_name:
+                if timestamp >= user.name_timestamp:
+                    if user.name not in user.aliases:
+                        user.aliases.append(user.name)
+                    user.name = current_name
+                    user.name_timestamp = timestamp
+                else:
+                    if current_name not in user.aliases:
+                        user.aliases.append(current_name)
+        else:
+            user = cls(
+                uid=uid, gid=gid, name=current_name, name_timestamp=timestamp,
+            )
+            session.add(user)
         return user
+
+    @property
+    def names(self):
+        return [self.name] + self.aliases
 
 
 class MyModsUserStaging(Base):

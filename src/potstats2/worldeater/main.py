@@ -70,11 +70,11 @@ def merge_posts(session, dbthread, posts):
             dbpost.last_edit_user = User.from_xml(session, edited.find('./lastedit/user'), dbpost.last_edit_timestamp)
 
         icon_tag = post.find('./icon')
-        if icon_tag:
-            post.icon_id = int(icon_tag.attrib['id'])
+        if icon_tag is not None:
+            dbpost.icon_id = int(icon_tag.attrib['id'])
 
         avatar_tag = post.find('./avatar')
-        if avatar_tag:
+        if avatar_tag is not None:
             dbpost.poster.avatar = Avatar.from_xml(session, avatar_tag)
 
         post_content = session.query(PostContent).get(pid) or PostContent(pid=pid)

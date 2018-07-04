@@ -10,6 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import insert, JSONB, ARRAY
 
 import click
+from sqlalchemy.orm.attributes import flag_modified
 
 import potstats2
 from . import config
@@ -148,11 +149,13 @@ class User(Base):
                 if timestamp >= user.name_timestamp:
                     if user.name not in user.aliases:
                         user.aliases.append(user.name)
+                        flag_modified(user, 'aliases')
                     user.name = current_name
                     user.name_timestamp = timestamp
                 else:
                     if current_name not in user.aliases:
                         user.aliases.append(current_name)
+                        flag_modified(user, 'aliases')
         else:
             user = cls(
                 uid=uid, gid=gid, name=current_name, name_timestamp=timestamp,

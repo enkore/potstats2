@@ -186,7 +186,7 @@ def process_board(api, session, bid, force_initial_pass):
     with ElapsedProgressBar(thread_set,
                             show_pos=True, label='Finding updated threads') as bar:
         for dbthread in bar:
-            tnu = WorldeaterThreadsNeedingUpdate(thread=dbthread)
+            tnu = session.query(WorldeaterThreadsNeedingUpdate).get(dbthread.tid) or WorldeaterThreadsNeedingUpdate(thread=dbthread)
             if dbthread.last_pid:
                 thread = api.thread(dbthread.tid, pid=dbthread.last_post.pid)
                 # Might advance dbthread.last_post to the last post on this page

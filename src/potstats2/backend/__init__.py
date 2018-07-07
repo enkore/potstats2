@@ -44,6 +44,7 @@ class DatabaseAwareJsonEncoder(json.JSONEncoder):
             return {
                 'name': o.name,
                 'uid': o.uid,
+                'aliases': o.aliases,
             }
         if isinstance(o, Thread):
             return {

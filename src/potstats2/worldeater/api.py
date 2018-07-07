@@ -37,6 +37,11 @@ class ProfileNotFoundError(RuntimeError):
         return 'Profile not found for UID %d' % self.args
 
 
+class NoAccess(RuntimeError):
+    def __str__(self):
+        return 'No access to %s (%s %d)' % self.args
+
+
 def b2i(boolean):
     return '1' if boolean else '0'
 
@@ -73,6 +78,8 @@ class XmlApiConnector:
         ))
         if board.tag == 'invalid-board':
             raise InvalidBoardError(bid)
+        if board.tag == 'no-access':
+            raise NoAccess('board', 'BID', bid)
         return board
 
     def thread(self, tid, page=None, pid=None):
@@ -154,7 +161,7 @@ class XmlApiConnector:
 
     def _iter_board_rev(self, bid):
         board = self.board(bid)
-        last_page = page = meth.ceil((int(board.find('./number-of-threads').attrib['value']) + 1) / 30)
+        last_page = page = meth.ceil((int(board.find('./number-of-threads').attrib['value']) + 1) / 30) + 1
         while page >= 0:
             board = self.board(bid, page)
             threads = board.findall('./threads/thread')

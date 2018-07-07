@@ -5,7 +5,7 @@ import click
 from sqlalchemy import func, desc, event
 from sqlalchemy.orm.attributes import set_attribute
 
-from .api import XmlApiConnector, ProfileNotFoundError, UnreachableProfileError
+from .api import XmlApiConnector, ProfileNotFoundError, UnreachableProfileError, NoAccess
 from ..config import setup_debugger
 from ..db import get_session, Category, Board, Thread, Post, PostContent, User, WorldeaterState, \
     WorldeaterThreadsNeedingUpdate, MyModsUserStaging, Avatar
@@ -150,7 +150,11 @@ def process_threads_needing_update(api, session):
 
 
 def process_board(api, session, bid, force_initial_pass):
-    board = api.board(bid)
+    try:
+        board = api.board(bid)
+    except NoAccess as na:
+        print(na)
+        return
 
     initial_pass = not session.query(func.count(Thread.tid)).join(Thread.board).filter(Board.bid == bid)[0][0] \
                    or force_initial_pass
@@ -271,7 +275,7 @@ class StateTracker:
 
 
 @click.command()
-@click.option('--board-id', default=53)
+@click.option('--board-id', default='')
 @click.option('--only-tnu', default=False, is_flag=True)
 @click.option('--force-initial-pass', default=False, is_flag=True)
 @click.option('--my-mods-profiles', default=False, is_flag=True)
@@ -291,7 +295,13 @@ def main(board_id, only_tnu, force_initial_pass, my_mods_profiles):
         categories = sync_categories(api, session)
         sync_boards(session, categories)
 
-        process_board(api, session, board_id, force_initial_pass=force_initial_pass)
+        if board_id:
+            if board_id == 'all':
+                for bid, in session.query(Board.bid).all():
+                    process_board(api, session, bid, force_initial_pass=force_initial_pass)
+            else:
+                bid = int(board_id)
+                process_board(api, session, bid, force_initial_pass=force_initial_pass)
 
         process_threads_needing_update(api, session)
 

@@ -28,16 +28,16 @@
         </mat-form-field>
       </mat-list-item>
 
-      <a mat-list-item routerLink="/userstats">User Statistiken</a>
-      <a mat-list-item routerLink="/year-to-year-stats">Jahreswerte</a>
-      <a mat-list-item routerLink="/weekday-stats">Wochentage</a>
-      <a mat-list-item routerLink="/daily-stats">Tageswerte</a>
-      <a mat-list-item routerLink="/board-stats">Foren</a>
+      <a mat-list-item [routerLink]="['/userstats', { year: selectedYear, bid: selectedBoard}]">User Statistiken</a>
+      <a mat-list-item [routerLink]="['/year-to-year-stats', { year: selectedYear, bid: selectedBoard}]">Jahreswerte</a>
+      <a mat-list-item [routerLink]="['/weekday-stats', { year: selectedYear, bid: selectedBoard}]">Wochentage</a>
+      <a mat-list-item [routerLink]="['/daily-stats', { year: selectedYear, bid: selectedBoard}]">Tageswerte</a>
+      <a mat-list-item [routerLink]="['/board-stats', { year: selectedYear, bid: selectedBoard}]">Foren</a>
     </mat-nav-list>
 
     <div id='imprint-and-shit'>
-      <a routerLink="/imprint">Impressum</a> ·
-      <a routerLink="/privacy">Datenschutzerklärung</a>
+      <a [routerLink]="['/imprint', { year: selectedYear, bid: selectedBoard}]">Impressum</a> ·
+      <a [routerLink]="['/privacy', { year: selectedYear, bid: selectedBoard}]">Datenschutzerklärung</a>
     </div>
   </mat-sidenav>
   <mat-sidenav-content>

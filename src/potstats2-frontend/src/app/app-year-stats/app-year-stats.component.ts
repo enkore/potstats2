@@ -3,13 +3,15 @@ import {YearStatsService} from '../data/year-stats.service';
 import {AppYearStatsDataSource} from './app-year-stats-data-source';
 import {GlobalFilterStateService} from '../global-filter-state.service';
 import {Stats} from '../data/types';
+import {ActivatedRoute, Router} from '@angular/router';
+import {FilterAwareComponent} from '../filter-aware-component';
 
 @Component({
   selector: 'app-year-stats',
   templateUrl: './app-year-stats.component.html',
   styleUrls: ['./app-year-stats.component.css']
 })
-export class AppYearStatsComponent implements OnInit {
+export class AppYearStatsComponent extends FilterAwareComponent implements OnInit {
   dataSource: AppYearStatsDataSource;
 
   selectableStats: Stats[] = [
@@ -36,10 +38,15 @@ export class AppYearStatsComponent implements OnInit {
   ];
   displayedColumns = ['year'].concat(...this.selectableStats.map(stats => stats.value));
 
-  constructor(private service: YearStatsService, private stateService: GlobalFilterStateService) {
+  constructor(private service: YearStatsService,
+              private stateService: GlobalFilterStateService,
+              activatedRoute: ActivatedRoute,
+              router: Router) {
+    super(router, stateService, activatedRoute);
   }
 
   ngOnInit() {
+    this.onInit();
     this.dataSource = new AppYearStatsDataSource(this.service, this.stateService);
   }
 

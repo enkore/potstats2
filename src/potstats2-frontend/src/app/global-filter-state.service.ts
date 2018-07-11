@@ -16,11 +16,29 @@ export class GlobalFilterStateService {
   }
 
   setYear(year: number) {
+    if (year === this.year)  {
+      return;
+    }
     this.year = year;
     this.next();
   }
   setBoard(bid: number) {
+    if (bid === this.bid)  {
+      return;
+    }
     this.bid = bid;
+    this.next();
+  }
+  setBoth(year: number | string, bid: number | string) {
+    if (+year === this.year && +bid === this.bid) {
+      return;
+    }
+    if (+year > 0) {
+      this.year = +year;
+    }
+    if (+bid > 0) {
+      this.bid = +bid;
+    }
     this.next();
   }
 

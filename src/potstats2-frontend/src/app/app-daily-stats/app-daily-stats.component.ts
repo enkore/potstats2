@@ -7,13 +7,15 @@ import {AppDailyStatsDataSource} from './app-daily-stats-data-source';
 import {MatSelect} from '@angular/material';
 import {map} from 'rxjs/operators';
 import {concat, of} from 'rxjs';
+import {ActivatedRoute, Router} from '@angular/router';
+import {FilterAwareComponent} from '../filter-aware-component';
 
 @Component({
   selector: 'app-app-hourly-stats',
   templateUrl: './app-daily-stats.component.html',
   styleUrls: ['./app-daily-stats.component.css']
 })
-export class AppDailyStatsComponent implements OnInit {
+export class AppDailyStatsComponent extends FilterAwareComponent implements OnInit {
   @ViewChild(MatSelect) statsSelect: MatSelect;
 
   statsSource: Observable<SeriesStats[]>;
@@ -46,10 +48,15 @@ export class AppDailyStatsComponent implements OnInit {
   defaultYear = 2018;
   activeYear: Observable<number>;
 
-  constructor(private service: DailyStatsService, private stateService: GlobalFilterStateService) {
+  constructor(private service: DailyStatsService,
+              private stateService: GlobalFilterStateService,
+              activatedRoute: ActivatedRoute,
+              router: Router) {
+    super(router, stateService, activatedRoute);
   }
 
   ngOnInit() {
+    this.onInit();
     const statSelect = concat(of(this.selectableStats[0]), <Observable<Stats>>this.statsSelect.valueChange);
     this.activeYear = this.stateService.state.pipe(
       map(state => {

@@ -1,9 +1,10 @@
 import {Component, OnInit} from '@angular/core';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Observable } from 'rxjs';
+import {BreakpointObserver, Breakpoints} from '@angular/cdk/layout';
+import {Observable} from 'rxjs';
 import {delay, map} from 'rxjs/operators';
 import {GlobalFilterStateService} from '../global-filter-state.service';
 import {BoardsService} from '../data/boards.service';
+import {ActivatedRoute, Router} from '@angular/router';
 
 @Component({
   selector: 'app-nav',
@@ -24,11 +25,16 @@ export class AppNavComponent implements OnInit {
   selectedBoard: number;
 
   constructor(private breakpointObserver: BreakpointObserver,
+              private router: Router,
+              private activatedRoute: ActivatedRoute,
               private stateService: GlobalFilterStateService,
               private boardsService: BoardsService) {
     const now = (new Date()).getFullYear();
-    for (let year = now; year >= 2003; year--) { this.years.push(year); }
+    for (let year = now; year >= 2003; year--) {
+      this.years.push(year);
+    }
   }
+
   setYear($event) {
     this.stateService.setYear($event.value);
   }
@@ -36,7 +42,9 @@ export class AppNavComponent implements OnInit {
   setBoard($event) {
     this.stateService.setBoard($event.value);
   }
+
   ngOnInit(): void {
+
     this.stateService.state.pipe(
       // We delay the update to another cycle in case another components changes the year while initialising
       delay(0)

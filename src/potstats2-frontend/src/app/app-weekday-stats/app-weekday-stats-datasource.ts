@@ -1,9 +1,9 @@
 import { Observable} from 'rxjs';
 import {WeekdayStats} from '../data/types';
-import {GlobalFilterStateService} from "../global-filter-state.service";
-import {BaseDataSource} from "../base-datasource";
-import {WeekdayStatsService} from "../data/weekday-stats.service";
-import {map} from "rxjs/operators";
+import {GlobalFilterStateService} from '../global-filter-state.service';
+import {BaseDataSource} from '../base-datasource';
+import {WeekdayStatsService} from '../data/weekday-stats.service';
+import {map} from 'rxjs/operators';
 
 export class AppWeekdayStatsDatasource extends BaseDataSource<WeekdayStats> {
 
@@ -13,7 +13,7 @@ export class AppWeekdayStatsDatasource extends BaseDataSource<WeekdayStats> {
   }
 
 
-  protected  changedParameters(): Observable<{}>{
+  protected  changedParameters(): Observable<{}> {
     return this.stateService.state;
   }
 

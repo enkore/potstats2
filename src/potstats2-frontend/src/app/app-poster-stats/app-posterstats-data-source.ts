@@ -2,8 +2,8 @@ import {MatSort} from '@angular/material';
 import { Observable, combineLatest } from 'rxjs';
 import {PosterStats} from '../data/types';
 import {PosterStatsService} from '../data/poster-stats.service';
-import {GlobalFilterStateService} from "../global-filter-state.service";
-import {BaseDataSource} from "../base-datasource";
+import {GlobalFilterStateService} from '../global-filter-state.service';
+import {BaseDataSource} from '../base-datasource';
 
 export class AppPosterstatsDataSource extends BaseDataSource<PosterStats> {
 
@@ -15,7 +15,7 @@ export class AppPosterstatsDataSource extends BaseDataSource<PosterStats> {
   }
 
 
-  protected  changedParameters(): Observable<{}>{
+  protected  changedParameters(): Observable<{}> {
     return combineLatest(this.stateService.state,
       this.sorting,
       (state, sort) => {
@@ -23,8 +23,8 @@ export class AppPosterstatsDataSource extends BaseDataSource<PosterStats> {
         ...state,
         order_by: sort.active,
         order: sort.direction,
-      }
-    })
+      };
+    });
   }
 
 }

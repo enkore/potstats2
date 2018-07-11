@@ -1,8 +1,8 @@
 import {Component, OnInit} from '@angular/core';
-import {AppBoardStatsDataSource} from "./app-board-stats-data-source";
-import {BoardsService} from "../data/boards.service";
-import {GlobalFilterStateService} from "../global-filter-state.service";
-import {Stats} from "../data/types";
+import {AppBoardStatsDataSource} from './app-board-stats-data-source';
+import {BoardsService} from '../data/boards.service';
+import {GlobalFilterStateService} from '../global-filter-state.service';
+import {Stats} from '../data/types';
 
 @Component({
   selector: 'app-board-stats',

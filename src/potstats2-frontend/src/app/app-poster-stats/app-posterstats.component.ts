@@ -2,8 +2,8 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { MatSort } from '@angular/material';
 import { AppPosterstatsDataSource } from './app-posterstats-data-source';
 import {PosterStatsService} from '../data/poster-stats.service';
-import {GlobalFilterStateService} from "../global-filter-state.service";
-import {Subject} from "rxjs/internal/Subject";
+import {GlobalFilterStateService} from '../global-filter-state.service';
+import {Subject} from 'rxjs/internal/Subject';
 
 @Component({
   selector: 'app-userstats',

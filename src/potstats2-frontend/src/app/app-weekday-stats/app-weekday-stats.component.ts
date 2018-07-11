@@ -1,9 +1,9 @@
 import {Component, OnInit} from '@angular/core';
-import {AppWeekdayStatsDatasource} from "./app-weekday-stats-datasource";
-import {WeekdayStatsService} from "../data/weekday-stats.service";
-import {GlobalFilterStateService} from "../global-filter-state.service";
-import {Stats} from "../data/types";
-import {WeekdayPipe} from "../weekday.pipe";
+import {AppWeekdayStatsDatasource} from './app-weekday-stats-datasource';
+import {WeekdayStatsService} from '../data/weekday-stats.service';
+import {GlobalFilterStateService} from '../global-filter-state.service';
+import {Stats} from '../data/types';
+import {WeekdayPipe} from '../weekday.pipe';
 
 @Component({
   selector: 'app-weekday-stats',

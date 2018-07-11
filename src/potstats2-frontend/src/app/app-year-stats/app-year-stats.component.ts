@@ -1,8 +1,8 @@
 import {Component, OnInit} from '@angular/core';
-import {YearStatsService} from "../data/year-stats.service";
-import {AppYearStatsDataSource} from "./app-year-stats-data-source";
-import {GlobalFilterStateService} from "../global-filter-state.service";
-import {Stats} from "../data/types";
+import {YearStatsService} from '../data/year-stats.service';
+import {AppYearStatsDataSource} from './app-year-stats-data-source';
+import {GlobalFilterStateService} from '../global-filter-state.service';
+import {Stats} from '../data/types';
 
 @Component({
   selector: 'app-year-stats',

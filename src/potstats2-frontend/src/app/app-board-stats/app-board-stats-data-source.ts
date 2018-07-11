@@ -1,8 +1,8 @@
 import { Observable} from 'rxjs';
 import {BoardStats} from '../data/types';
-import {BaseDataSource} from "../base-datasource";
-import {BoardsService} from "../data/boards.service";
-import {GlobalFilterStateService} from "../global-filter-state.service";
+import {BaseDataSource} from '../base-datasource';
+import {BoardsService} from '../data/boards.service';
+import {GlobalFilterStateService} from '../global-filter-state.service';
 
 export class AppBoardStatsDataSource extends BaseDataSource<BoardStats> {
 
@@ -12,7 +12,7 @@ export class AppBoardStatsDataSource extends BaseDataSource<BoardStats> {
   }
 
 
-  protected  changedParameters(): Observable<{}>{
+  protected  changedParameters(): Observable<{}> {
     return this.stateService.state;
   }
 

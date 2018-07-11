@@ -1,9 +1,9 @@
 
 import {HttpClient} from '@angular/common/http';
 import {map} from 'rxjs/operators';
-import {Observable} from "rxjs/internal/Observable";
-import {environment} from "../environments/environment";
-import {of} from "rxjs/internal/observable/of";
+import {Observable} from 'rxjs/internal/Observable';
+import {environment} from '../environments/environment';
+import {of} from 'rxjs/internal/observable/of';
 
 export class RowResponse<T> {
   rows: T[];
@@ -18,7 +18,7 @@ export abstract class BaseDataService<T> {
   private nextPage: string = undefined;
 
   execute(params: {}): Observable<T[]> {
-    for (let k in params) {
+    for (const k in params) {
       if (params[k] === null || params[k] === '' || params[k] === undefined) {
         delete params[k];
       }

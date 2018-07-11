@@ -1,9 +1,9 @@
 import { DataSource } from '@angular/cdk/collections';
 import {MatSort, Sort} from '@angular/material';
 import { Observable, merge } from 'rxjs';
-import {BaseDataService} from "./base-data-service";
-import {concat, flatMap, map, takeWhile} from "rxjs/operators";
-import {of} from "rxjs/internal/observable/of";
+import {BaseDataService} from './base-data-service';
+import {concat, flatMap, map, takeWhile} from 'rxjs/operators';
+import {of} from 'rxjs/internal/observable/of';
 
 export abstract class BaseDataSource<T> extends DataSource<T> {
   protected connected = false;
@@ -19,7 +19,7 @@ export abstract class BaseDataSource<T> extends DataSource<T> {
     }
   }
 
-  protected abstract changedParameters(): Observable<{}>
+  protected abstract changedParameters(): Observable<{}>;
 
   /**
    * Connect this data source to the table. The table will only update when
@@ -47,7 +47,7 @@ export abstract class BaseDataSource<T> extends DataSource<T> {
         );
       return merge(infiniteLoader, freshLoader).pipe(
         takeWhile(() => this.connected),
-      )
+      );
     } else {
       return freshLoader.pipe(
         takeWhile(() => this.connected)

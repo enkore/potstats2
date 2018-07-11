@@ -1,9 +1,9 @@
 import {Injectable} from '@angular/core';
-import {DataModule} from "./data.module";
-import {MultiSeriesStat} from "./types";
-import {HttpClient} from "@angular/common/http";
-import {environment} from "../../environments/environment";
-import {Observable} from "rxjs/internal/Observable";
+import {DataModule} from './data.module';
+import {MultiSeriesStat} from './types';
+import {HttpClient} from '@angular/common/http';
+import {environment} from '../../environments/environment';
+import {Observable} from 'rxjs/internal/Observable';
 
 @Injectable({
   providedIn: DataModule
@@ -16,7 +16,7 @@ export class DailyStatsService {
   }
 
   execute(params: {}): Observable<MultiSeriesStat> {
-    for (let k in params) {
+    for (const k in params) {
       if (params[k] === null || params[k] === '' || params[k] === undefined) {
         delete params[k];
       }

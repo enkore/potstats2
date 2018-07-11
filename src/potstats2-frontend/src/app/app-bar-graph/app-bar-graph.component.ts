@@ -1,10 +1,10 @@
 import {Component, Input, OnInit, PipeTransform, ViewChild} from '@angular/core';
-import {Stats} from "../data/types";
-import {Observable} from "rxjs/internal/Observable";
-import {combineLatest, concat, map} from "rxjs/operators";
+import {Stats} from '../data/types';
+import {Observable} from 'rxjs/internal/Observable';
+import {combineLatest, concat, map} from 'rxjs/operators';
 import {of} from 'rxjs';
-import {MatSelect} from "@angular/material";
-import {NoopPipe} from "../noop.pipe";
+import {MatSelect} from '@angular/material';
+import {NoopPipe} from '../noop.pipe';
 
 @Component({
   selector: 'app-app-bar-graph',
@@ -43,14 +43,14 @@ export class AppBarGraphComponent implements OnInit {
         return {
           rows: rows,
           selectedStats: selectedStats
-        }
+        };
       }),
       map(state => {
         return state.rows.map(row => {
           return {
             name: this.pipe.transform(row[this.xValue]).toString(),
             value: row[(<any>state.selectedStats).value],
-          }
+          };
         });
       })
     );

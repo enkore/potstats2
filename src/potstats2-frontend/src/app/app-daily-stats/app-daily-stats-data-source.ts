@@ -1,8 +1,8 @@
 import {combineLatest, Observable} from 'rxjs';
 import {SeriesStats, Stats} from '../data/types';
-import {GlobalFilterStateService} from "../global-filter-state.service";
-import {DailyStatsService} from "../data/daily-stats.service";
-import {flatMap, map} from "rxjs/operators";
+import {GlobalFilterStateService} from '../global-filter-state.service';
+import {DailyStatsService} from '../data/daily-stats.service';
+import {flatMap, map} from 'rxjs/operators';
 
 export class AppDailyStatsDataSource {
 

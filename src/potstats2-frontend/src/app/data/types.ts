@@ -1,24 +1,24 @@
 export interface Stats {
-  label: string,
-  value: string,
+  label: string;
+  value: string;
 }
 
 export interface TopThread {
-  tid: number,
-  title: string,
-  subtitle: string,
-  thread_post_count: number,
+  tid: number;
+  title: string;
+  subtitle: string;
+  thread_post_count: number;
 }
 
 export interface SeriesStats {
-  name: string,
-  value: string
-  threads: TopThread[],
+  name: string;
+  value: string;
+  threads: TopThread[];
 }
 
 export interface MultiSeriesStat {
-  name: string,
-  series: SeriesStats[],
+  name: string;
+  series: SeriesStats[];
 }
 
 export interface User {
@@ -27,11 +27,11 @@ export interface User {
 }
 
 export interface BoardStats {
-  name: string,
-  bid: number,
-  description: string,
-  thread_count: number,
-  post_count: number
+  name: string;
+  bid: number;
+  description: string;
+  thread_count: number;
+  post_count: number;
 }
 
 export interface PosterStats {
@@ -46,28 +46,28 @@ export interface PosterStats {
 }
 
 export interface YearStats {
-  year: number,
-  post_count: number,
-  edit_count: number,
-  avg_post_length: number,
-  threads_created: number,
-  active_users: number,
+  year: number;
+  post_count: number;
+  edit_count: number;
+  avg_post_length: number;
+  threads_created: number;
+  active_users: number;
 }
 
 export interface WeekdayStats {
-  weekday: number,
-  post_count: number,
-  edit_count: number,
-  avg_post_length: number,
-  threads_created: number,
-  active_users: number,
+  weekday: number;
+  post_count: number;
+  edit_count: number;
+  avg_post_length: number;
+  threads_created: number;
+  active_users: number;
 }
 
 export interface HourlyStats {
-  weekday_hour: string,
-  post_count: number,
-  edit_count: number,
-  avg_post_length: number,
-  threads_created: number,
-  active_users: number,
+  weekday_hour: string;
+  post_count: number;
+  edit_count: number;
+  avg_post_length: number;
+  threads_created: number;
+  active_users: number;
 }

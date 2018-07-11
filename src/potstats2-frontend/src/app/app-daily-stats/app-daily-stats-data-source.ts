@@ -25,7 +25,7 @@ export class AppDailyStatsDataSource {
           if (state.year) {
             return state;
           } else {
-            const newstate = state;
+            const newstate = { ...state };
             newstate.year = 2018;
             return newstate;
           }
@@ -36,7 +36,7 @@ export class AppDailyStatsDataSource {
         return {
           ...state,
           statistic: selected.value,
-        }
+        };
       });
   }
 

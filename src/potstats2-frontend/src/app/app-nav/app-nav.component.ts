@@ -1,16 +1,16 @@
-import { Component } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-import {GlobalFilterStateService} from "../global-filter-state.service";
-import {BoardsService} from "../data/boards.service";
+import {delay, map} from 'rxjs/operators';
+import {GlobalFilterStateService} from '../global-filter-state.service';
+import {BoardsService} from '../data/boards.service';
 
 @Component({
   selector: 'app-nav',
   templateUrl: './app-nav.component.html',
   styleUrls: ['./app-nav.component.css']
 })
-export class AppNavComponent {
+export class AppNavComponent implements OnInit {
 
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset)
     .pipe(
@@ -27,11 +27,7 @@ export class AppNavComponent {
               private stateService: GlobalFilterStateService,
               private boardsService: BoardsService) {
     const now = (new Date()).getFullYear();
-    for (let year=now; year >= 2003; year--) { this.years.push(year)}
-    stateService.state.subscribe(state => {
-      this.selectedYear = state.year;
-      this.selectedBoard = state.bid;
-    });
+    for (let year = now; year >= 2003; year--) { this.years.push(year); }
   }
   setYear($event) {
     this.stateService.setYear($event.value);
@@ -40,4 +36,15 @@ export class AppNavComponent {
   setBoard($event) {
     this.stateService.setBoard($event.value);
   }
+  ngOnInit(): void {
+    this.stateService.state.pipe(
+      // We delay the update to another cycle in case another components changes the year while initialising
+      delay(0)
+    ).subscribe(state => {
+      this.selectedYear = state.year;
+      this.selectedBoard = state.bid;
+    });
+  }
+
+
 }

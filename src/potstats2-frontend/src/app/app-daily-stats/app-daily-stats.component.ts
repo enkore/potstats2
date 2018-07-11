@@ -1,12 +1,12 @@
 import {Component, OnInit, ViewChild} from '@angular/core';
-import {DailyStatsService} from "../data/daily-stats.service";
-import {GlobalFilterStateService} from "../global-filter-state.service";
-import {Observable} from "rxjs/internal/Observable";
-import {SeriesStats, Stats} from "../data/types";
-import {AppDailyStatsDataSource} from "./app-daily-stats-data-source";
-import {of} from "rxjs/internal/observable/of";
-import {MatSelect} from "@angular/material";
-import {concat, map} from "rxjs/operators";
+import {DailyStatsService} from '../data/daily-stats.service';
+import {GlobalFilterStateService} from '../global-filter-state.service';
+import {Observable} from 'rxjs/internal/Observable';
+import {SeriesStats, Stats} from '../data/types';
+import {AppDailyStatsDataSource} from './app-daily-stats-data-source';
+import {MatSelect} from '@angular/material';
+import {map} from 'rxjs/operators';
+import {concat, of} from 'rxjs';
 
 @Component({
   selector: 'app-app-hourly-stats',
@@ -44,24 +44,20 @@ export class AppDailyStatsComponent implements OnInit {
   selectedStats = this.selectableStats[0];
 
   defaultYear = 2018;
-  selectedYear = this.defaultYear;
+  activeYear: Observable<number>;
 
   constructor(private service: DailyStatsService, private stateService: GlobalFilterStateService) {
   }
 
   ngOnInit() {
-    const statSelect = of(this.selectableStats[0]).pipe(
-      concat(<Observable<Stats>>this.statsSelect.valueChange)
-    );
-    const selectedYear = this.stateService.state.pipe(
+    const statSelect = concat(of(this.selectableStats[0]), <Observable<Stats>>this.statsSelect.valueChange);
+    this.activeYear = this.stateService.state.pipe(
       map(state => {
         if (state.year) {
-          return state;
+          return state.year;
         } else {
-          const newstate = state;
-          newstate.year = this.defaultYear;
-          this.selectedYear = newstate.year;
-          return newstate;
+          this.stateService.setYear(this.defaultYear);
+          return this.defaultYear;
         }
       })
     );

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import {Subject} from "rxjs/internal/Subject";
-import {BehaviorSubject} from "rxjs/internal/BehaviorSubject";
+import {Subject} from 'rxjs/internal/Subject';
+import {BehaviorSubject} from 'rxjs/internal/BehaviorSubject';
 
 @Injectable({
   providedIn: 'root'
@@ -33,6 +33,6 @@ export class GlobalFilterStateService {
 }
 
 export interface GlobalFilterState {
-  year: number,
-  bid: number,
+  year: number;
+  bid: number;
 }

@@ -15,7 +15,7 @@
       showXAxisLabel="true"
       showYAxisLabel="true"
       scheme="solar"
-      xAxisLabel="Woche in {{selectedYear}}"
+      [xAxisLabel]="activeYear | async"
       legend="true"
     >
       <ng-template #tooltipTemplate let-model="model">

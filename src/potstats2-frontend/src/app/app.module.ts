@@ -34,6 +34,7 @@ import {AppDailyStatsComponent} from './app-daily-stats/app-daily-stats.componen
 
 
 const routes: Routes = [
+  { path: '', redirectTo: '/userstats', pathMatch: 'full' },
   { path: 'userstats', component: AppPosterstatsComponent},
   { path: 'year-to-year-stats', component: AppYearStatsComponent},
   { path: 'weekday-stats', component: AppWeekdayStatsComponent},

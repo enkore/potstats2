@@ -3,10 +3,10 @@ potstats2
 
 A classic four-zoo enterprise architecture:
 
-- Backoffice: The worldeater populates the database via the XML API
+- Backoffice: The craler populates the database via the forum's XML API
 - Backend: A JSON-API-to-RDBMS connector
 - Frontend: Displays backend data as tables, graphs etc. and allows user interaction
-- Business Intelligence: potstats2-analytics compiles secondary intelligence files from the primary database
+- Very High Grade Offline Transactional Analytics: potstats2-analytics
 
 Le Stack
 
@@ -98,12 +98,13 @@ The cache is automatically invalidated by
 - changing software version.
 
 Manual invalidation is provided by simply flushing the redis database, or alternatively
-for lazy folks, ``potstats2-invalidate-cache``.
+for lazy folks, ``potstats2-cache invalidate``.
 
 The Redis DB used for caching is ``0``; DB ``1`` contains some basic statistics.
 
 Statistics can be accessed through the ``/api/backend-stats`` endpoint, especially if you are using
-a recent Firefox version, which formats JSON quite nicely by itself.
+a recent Firefox version, which formats JSON quite nicely by itself. Alternatively ``potstats2-cache stats``
+does pretty much the same thing sans HTTP.
 
 Frontend
 --------

@@ -321,8 +321,7 @@ def _daily_stats_agg_query(session):
 
             def proc(row):
                 row = dict(zip(labels, (proc(row) for proc in procs)))
-                bm = BitMap()
-                bm.update(*map(BitMap, row.pop('_active_users')))
+                bm = BitMap.union(*map(BitMap.deserialize, row.pop('_active_users')))
                 row['active_users'] = len(bm)
                 return row
             return proc
@@ -331,7 +330,7 @@ def _daily_stats_agg_query(session):
                              agg(func.sum, DailyStats.post_count),
                              agg(func.sum, DailyStats.edit_count),
                              agg(func.sum, DailyStats.threads_created),
-                             func.jsonb_agg(DailyStats.active_users).label('_active_users'),
+                             func.array_agg(DailyStats.active_users).label('_active_users'),
                              cast(func.sum(DailyStats.posts_length) / func.sum(DailyStats.post_count), Integer).label(
                                  'avg_post_length'))
 

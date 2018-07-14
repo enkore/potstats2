@@ -189,7 +189,11 @@ def bake_poster_stats(session):
 
 def bake_daily_stats(session):
     t0 = perf_counter()
-    DailyStats.refresh(session, dal.daily_statistics_agg(session))
+    session.query(DailyStats).delete()
+    for day in dal.daily_statistics_agg(session).all():
+        day = day._asdict()
+        day['active_users'] = BitMap(day['active_users']).serialize()
+        session.add(DailyStats(**day))
     elapsed = perf_counter() - t0
     print('Baked daily stats ({} rows) in {:.1f} s.'.format(session.query(DailyStats).count(), elapsed))
 

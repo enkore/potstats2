@@ -446,7 +446,7 @@ class PosterStats(PseudoMaterializedView):
     user = relationship('User')
 
 
-class DailyStats(PseudoMaterializedView):
+class DailyStats(Base):
     __tablename__ = 'baked_daily_stats'
 
     year = Column(Integer, primary_key=True)
@@ -457,7 +457,7 @@ class DailyStats(PseudoMaterializedView):
     edit_count = Column(Integer)
     posts_length = Column(Integer)
     threads_created = Column(Integer)
-    active_users = Column(ARRAY(Integer, dimensions=1))
+    active_users = Column(Binary)
     active_threads = Column(JSONB)
 
     board = relationship('Board')

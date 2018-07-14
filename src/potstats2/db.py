@@ -458,6 +458,5 @@ class DailyStats(Base):
     posts_length = Column(Integer)
     threads_created = Column(Integer)
     active_users = Column(Binary)
-    active_threads = Column(JSONB)
 
     board = relationship('Board')

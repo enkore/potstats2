@@ -308,9 +308,6 @@ def daily_stats():
             series.append(dict(name=week_of_the_year, series=week()))
 
         series[-1]['series'][date.weekday()]['value'] = row.stats[statistic]
-        active_threads = [thread for threads in row.active_threads for thread in threads]
-        active_threads.sort(key=lambda thread: thread['thread_post_count'], reverse=True)
-        series[-1]['series'][date.weekday()]['extra'] = dict(active_threads=row.active_threads[:5])
 
     if rows:
         # Trim first week to actual week length

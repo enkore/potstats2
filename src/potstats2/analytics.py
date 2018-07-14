@@ -193,6 +193,7 @@ def bake_daily_stats(session):
     for day in dal.daily_statistics_agg(session).all():
         day = day._asdict()
         day['active_users'] = BitMap(day['active_users']).serialize()
+        day.pop('active_threads')
         session.add(DailyStats(**day))
     elapsed = perf_counter() - t0
     print('Baked daily stats ({} rows) in {:.1f} s.'.format(session.query(DailyStats).count(), elapsed))

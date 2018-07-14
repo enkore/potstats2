@@ -362,12 +362,11 @@ def daily_stats(session, year, bid=None):
 
     Result columns:
     stats = {post_count, edit_count, avg_post_length, threads_created}
-    day_of_year,
-    active_threads
+    day_of_year
     """
     query = (
         _daily_stats_agg_query(session)
-        .add_columns(DailyStats.day_of_year, func.jsonb_agg(DailyStats.active_threads).label('active_threads'))
+        .add_columns(DailyStats.day_of_year)
         .filter(DailyStats.year == year)
         .group_by(DailyStats.day_of_year)
         .order_by(DailyStats.day_of_year)
@@ -383,8 +382,7 @@ def daily_statistic(session, statistic, year, bid=None):
 
     Result columns:
     stats = {post_count, edit_count, avg_post_length, threads_created}
-    day_of_year,
-    active_threads
+    day_of_year
     """
     query = daily_stats(session, year, bid)
     legal_statistics = set(query.subquery().c.keys()) - {'_active_users'} | {'active_users'}

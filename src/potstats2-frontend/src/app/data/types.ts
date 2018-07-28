@@ -71,3 +71,8 @@ export interface HourlyStats {
   threads_created: number;
   active_users: number;
 }
+
+export interface ContactInfo {
+  name: string;
+  contact_info: string
+}

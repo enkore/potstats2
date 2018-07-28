@@ -1,5 +1,5 @@
 import {BrowserModule} from '@angular/platform-browser';
-import {NgModule} from '@angular/core';
+import {LOCALE_ID, NgModule} from '@angular/core';
 
 import {AppComponent} from './app.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
@@ -32,6 +32,10 @@ import {AppBarGraphComponent} from './app-bar-graph/app-bar-graph.component';
 import {NoopPipe} from './noop.pipe';
 import {AppDailyStatsComponent} from './app-daily-stats/app-daily-stats.component';
 
+import {registerLocaleData} from '@angular/common';
+import localeDe from '@angular/common/locales/de';
+
+registerLocaleData(localeDe, 'de');
 
 const routes: Routes = [
   { path: '', redirectTo: '/userstats', pathMatch: 'full' },
@@ -77,7 +81,7 @@ const routes: Routes = [
     MatSortModule,
     DataModule,
   ],
-  providers: [],
+  providers: [{provide: LOCALE_ID, useValue: 'de'}],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

@@ -12,27 +12,27 @@
 
     <ng-container matColumnDef="post_count">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Posts</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.post_count}}</mat-cell>
+      <mat-cell *matCellDef="let row">{{row.post_count | number}}</mat-cell>
     </ng-container>
     <ng-container matColumnDef="edit_count">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Edits</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.edit_count}}</mat-cell>
+      <mat-cell *matCellDef="let row">{{row.edit_count | number }}</mat-cell>
     </ng-container>
     <ng-container matColumnDef="avg_post_length">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Durchschnittliche Postlänge</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.avg_post_length}}</mat-cell>
+      <mat-cell *matCellDef="let row">{{row.avg_post_length | number}}</mat-cell>
     </ng-container>
     <ng-container matColumnDef="threads_created">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Threads erstellt</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.threads_created}}</mat-cell>
+      <mat-cell *matCellDef="let row">{{row.threads_created | number }}</mat-cell>
     </ng-container>
     <ng-container matColumnDef="quoted_count">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Zitiert</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.quoted_count}}</mat-cell>
+      <mat-cell *matCellDef="let row">{{row.quoted_count | number }}</mat-cell>
     </ng-container>
     <ng-container matColumnDef="quotes_count">
       <mat-header-cell *matHeaderCellDef mat-sort-header>Zitate</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row.quotes_count}}</mat-cell>
+      <mat-cell *matCellDef="let row">{{row.quotes_count | number}}</mat-cell>
     </ng-container>
     <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
     <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>

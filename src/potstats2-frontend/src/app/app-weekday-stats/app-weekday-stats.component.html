@@ -17,7 +17,7 @@
     </ng-container>
     <ng-container *ngFor="let col of selectableStats" [matColumnDef]="col.value">
       <mat-header-cell *matHeaderCellDef>{{col.label}}</mat-header-cell>
-      <mat-cell *matCellDef="let row">{{row[col.value]}}</mat-cell>
+      <mat-cell *matCellDef="let row">{{row[col.value] | number}}</mat-cell>
     </ng-container>
     <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
     <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>

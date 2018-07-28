@@ -47,6 +47,7 @@ export class AppDailyStatsComponent extends FilterAwareComponent implements OnIn
 
   defaultYear = 2018;
   activeYear: Observable<number>;
+  formattedActiveYear: Observable<string>;
 
   constructor(private service: DailyStatsService,
               private stateService: GlobalFilterStateService,
@@ -67,6 +68,9 @@ export class AppDailyStatsComponent extends FilterAwareComponent implements OnIn
           return this.defaultYear;
         }
       })
+    );
+    this.formattedActiveYear = this.activeYear.pipe(
+      map(year => 'Kalenderwochen in ' + year)
     );
     const dataSource = new AppDailyStatsDataSource(this.service, this.stateService, statSelect);
     this.statsSource = dataSource.connect();

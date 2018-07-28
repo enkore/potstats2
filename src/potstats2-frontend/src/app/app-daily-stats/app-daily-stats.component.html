@@ -15,7 +15,7 @@
       showXAxisLabel="true"
       showYAxisLabel="true"
       scheme="solar"
-      [xAxisLabel]="activeYear | async"
+      [xAxisLabel]="formattedActiveYear | async"
       legend="true"
     >
       <ng-template #tooltipTemplate let-model="model">

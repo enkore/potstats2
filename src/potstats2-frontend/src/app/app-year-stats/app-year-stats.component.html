@@ -10,6 +10,12 @@
     <mat-card-content>
      <mat-table #table [dataSource]="dataSource" matSort aria-label="Elements">
 
+       <ng-container matColumnDef="row_index">
+         <mat-header-cell *matHeaderCellDef>Rang</mat-header-cell>
+         <mat-cell *matCellDef="let row; let i = index;">
+           {{ i+1 }}
+         </mat-cell>
+       </ng-container>
         <ng-container matColumnDef="year">
           <mat-header-cell *matHeaderCellDef>Jahr</mat-header-cell>
           <mat-cell *matCellDef="let row">{{row.year}}</mat-cell>

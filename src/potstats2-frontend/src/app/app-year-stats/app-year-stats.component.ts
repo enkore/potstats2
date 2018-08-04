@@ -36,7 +36,7 @@ export class AppYearStatsComponent extends FilterAwareComponent implements OnIni
       value: 'threads_created',
     },
   ];
-  displayedColumns = ['year'].concat(...this.selectableStats.map(stats => stats.value));
+  displayedColumns = ['row_index', 'year'].concat(...this.selectableStats.map(stats => stats.value));
 
   constructor(private service: YearStatsService,
               private stateService: GlobalFilterStateService,

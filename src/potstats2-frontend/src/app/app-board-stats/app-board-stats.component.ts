@@ -24,7 +24,7 @@ export class AppBoardStatsComponent extends FilterAwareComponent implements OnIn
       value: 'thread_count',
     },
   ];
-  displayedColumns = ['name'].concat(...this.selectableStats.map(stats => stats.value));
+  displayedColumns = ['row_index', 'name'].concat(...this.selectableStats.map(stats => stats.value));
 
   constructor(private service: BoardsService,
               private stateService: GlobalFilterStateService,

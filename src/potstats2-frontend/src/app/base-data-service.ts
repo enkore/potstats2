@@ -37,9 +37,11 @@ export abstract class BaseDataService<T> {
     if (this.nextPage === undefined) {
       return of([]);
     }
-    return this.http.get<RowResponse<T>>(environment.backend + this.nextPage).pipe(
+    const next = this.nextPage;
+    this.nextPage = undefined;
+    return this.http.get<RowResponse<T>>(environment.backend + next).pipe(
       map(response => {
-      this.nextPage = response.next;
+        this.nextPage = response.next;
         return response.rows;
       })
     );

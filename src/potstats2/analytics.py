@@ -115,7 +115,7 @@ def analyze_posts_process(nchild, progress_fd, pids):
     quotes = []
     urls = []
     search_contents = []
-    elasticsearch_queue = Queue()
+    elasticsearch_queue = Queue(maxsize=10)  # maximum of ~10×1000 = 10k pending ES index updates
     elasticsearch_thread = threading.Thread(target=elasticsearch_pusher, args=(elasticsearch_queue,))
     elasticsearch_thread.start()
     n = 0
@@ -176,7 +176,30 @@ def analyze_posts(session):
     es = config.elasticsearch_client()
     if es:
         es.indices.delete('pot', ignore=[404])
-
+        es.indices.create(index='pot', body={
+            'settings': {},
+            'mappings': {
+                'post': {
+                    'properties': {
+                        'content': {
+                            'type': 'text',
+                            'analyzer': 'german',
+                        },
+                        'title': {
+                            'type': 'text',
+                            'analyzer': 'german',
+                        },
+                        'pid': {
+                            'type': 'integer',
+                            'index': False,
+                        },
+                        'poster_uid': {
+                            'type': 'integer',
+                        }
+                    }
+                }
+            }
+        })
     num_posts = len(pids)
 
     children = {}

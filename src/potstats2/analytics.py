@@ -292,6 +292,7 @@ def analyze_post(post, pids, quotes, urls, search_contents=None):
     def index_for_search(post, original_content):
         if search_contents is not None:
             search_contents.append(dict(
+                pid=post.pid,
                 poster_uid=post.poster_uid,
                 content=original_content,
                 title=post.title,

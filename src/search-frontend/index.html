@@ -51,21 +51,19 @@
     </div>
     <div class='row'>
         <div class='column'>
-            <div style='display: none;'> <!-- psssht, beta! -->
-                Suche nach
-                <input type='radio' name='type' id='type-post' checked='checked'>
-                <label for='type-post'>Posts</label>
-                <input type='radio' name='type' id='type-thread'>
-                <label for='type-thread'>Threads</label>
-            </div>
+            Suche nach
+            <input type='radio' name='type' id='type-post' checked='checked'>
+            <label for='type-post'>Posts</label>
+            <input type='radio' name='type' id='type-thread'>
+            <label for='type-thread'>Threads</label>
 
             <div class='float-right'>
                 Sortieren nach
 
                 <select id='sort'>
                     <option value='score'>Relevanz</option>
-                    <option value='pid-desc'>Neueste zuerst</option>
-                    <option value='pid-asc'>Älteste zuerst</option>
+                    <option value='date-desc'>Neueste zuerst</option>
+                    <option value='date-asc'>Älteste zuerst</option>
                 </select>
             </div>
         </div>
@@ -149,8 +147,6 @@
         var result_rows = document.getElementById('results');
         clear_node(result_rows);
 
-        console.log(results);
-
         document.getElementById('field-count').textContent = results.count;
         document.getElementById('field-shown').textContent = results.results.length;
         document.getElementById('field-elapsed').textContent = results.elapsed.toFixed(3);
@@ -176,7 +172,7 @@
                 var row = document.importNode(thread_template.content, true);
                 row.querySelector('.field-title').textContent = result.title;
                 row.querySelector('.field-title').href = 'http://forum.mods.de/bb/thread.php?TID=' + result.tid;
-                row.querySelector('.field-subtitle').textContent = result.subtitle;
+                row.querySelector('.field-subtitle').textContent = result.subtitle || '';
                 result_rows.appendChild(row);
             }
         }

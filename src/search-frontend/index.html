@@ -3,14 +3,130 @@
 <head>
     <meta charset='UTF-8'>
     <title>pOTsearch</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+
+    <link rel='stylesheet' href='//cdn.rawgit.com/necolas/normalize.css/master/normalize.css'>
+    <link rel='stylesheet' href='//cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css'>
+
+    <style type='text/css'>
+        body {
+            color: black;
+        }
+
+
+        #results .row {
+            border-top: 1px solid grey;
+        }
+
+        a.field-snippet {
+            color: black;
+        }
+    </style>
 </head>
 <body>
 
-<input id='query'>
 
-<div id='results'>
+<div class='container'>
+    <div class='row row-center' style='margin: 1em 0; color: #606c76;'>
+        <div class='column' style='text-align: center'>
+            <h1 style='margin-bottom: 0'>pOTsearch</h1>
+            <em>— kein Mensch braucht Google —</em>
+        </div>
+    </div>
+    <div class='row'>
+        <div class='column column-66'>
+            <input id='query' placeholder='Suche…'>
+        </div>
+        <div class='column column-33'>
+            <input id='user' placeholder='Benutzername (funktioniert noch nicht)…'>
+        </div>
+    </div>
+    
+    <div class='row' style='display: none;' id='results-intro'>
+        <div class='column'>
+            <span id='field-count'></span> Ergebnisse, zeige nur die ersten <span id='field-shown'></span>.
+        </div>
+    </div>
 
+    <div id='results'>
+
+    </div>
 </div>
+
+<template id='row-template'>
+    <div class='row'>
+        <div class='column'>
+            <strong class='field-title'></strong>
+            <a href='' class='field-snippet'></a>
+        </div>
+        <div class='column'>
+            Im Thread: <span class='field-thread'></span><br>
+            Von: <span class='field-user'></span>
+        </div>
+    </div>
+</template>
+
+<script type='text/javascript'>
+    document.addEventListener('DOMContentLoaded', function() {
+        query_input = document.getElementById('query');
+        query_input.addEventListener("keyup", function (event) {
+            if (event.code === "Enter") {
+                do_search(query_input.value);
+            }
+        });
+
+        if (query_input.value.length) {
+            do_search(query_input.value);
+        }
+    });
+
+    function do_search(query) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '../api/search?content=' + encodeURIComponent(query), true);
+        xhr.onreadystatechange = function () {
+            // lol fehlerbehandlung
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var results = JSON.parse(xhr.responseText);
+                display_results(results);
+            }
+        };
+        xhr.send();
+    }
+
+    function display_results(results) {
+        var result_rows = document.getElementById('results');
+        var row_template = document.getElementById('row-template');
+        clear_node(result_rows);
+
+        console.log(results);
+
+        document.getElementById('field-count').textContent = results.count;
+        document.getElementById('field-shown').textContent = results.results.length;
+        document.getElementById('results-intro').style = '';
+
+        for (var i = 0; i < results.results.length; i++) {
+            var result = results.results[i];
+            var row = document.importNode(row_template.content, true);
+            row.querySelector('.field-title').textContent = ''; // fixme
+            row.querySelector('.field-snippet').innerHTML = result.snippet;
+            row.querySelector('.field-snippet').href = 'http://forum.mods.de/bb/thread.php?TID=' + result.thread.tid + '&PID=' + result.pid + '#reply_' + result.pid;
+            // TODO link thread, user
+            row.querySelector('.field-thread').textContent = result.thread.title + ' (' + result.thread.subtitle + ')';
+            row.querySelector('.field-user').textContent = result.user.name;
+
+            result_rows.appendChild(row);
+        }
+
+
+
+    }
+
+    function clear_node(node) {
+        while (node.firstChild) {
+            node.removeChild(node.firstChild);
+        }
+    }
+</script>
 
 </body>
 </html>

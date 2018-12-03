@@ -1,8 +1,9 @@
 import configparser
 import datetime
 import json
+import os.path
 
-from flask import Flask, request, Response, url_for, g
+from flask import Flask, request, Response, url_for, g, send_file
 from sqlalchemy import func, desc, tuple_, column
 from sqlalchemy.orm import joinedload
 
@@ -378,4 +379,9 @@ def api():
 
 def main():
     print('Only for development!')
-    app.run()
+
+    @app.route('/search/')
+    def search_frontend():
+        return send_file(os.path.join(os.path.dirname(__file__), '..', '..', 'search-frontend', 'index.html'))
+
+    app.run(debug=True)

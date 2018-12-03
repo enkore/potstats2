@@ -89,6 +89,8 @@ ESP_POISON = object()
 
 def elasticsearch_pusher(queue):
     es = config.elasticsearch_client()
+    if not es:
+        return
     while True:
         bodies = queue.get()
         if bodies is ESP_POISON:

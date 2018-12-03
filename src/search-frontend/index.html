@@ -21,6 +21,17 @@
         a.field-snippet {
             color: black;
         }
+
+        label {
+            display: inline;
+            font-size: 100%;
+            font-weight: normal;
+            margin: 0;
+        }
+
+        select {
+            width: auto;
+        }
     </style>
 </head>
 <body>
@@ -34,12 +45,31 @@
         </div>
     </div>
     <div class='row'>
-        <div class='column column-66'>
+        <div class='column column-100'>
             <input id='query' placeholder='Suche…'>
         </div>
-        <div class='column column-33'>
-            <input id='user' placeholder='Benutzername (funktioniert noch nicht)…'>
+    </div>
+    <div class='row'>
+        <div class='column'>
+            <div style='display: none;'> <!-- psssht, beta! -->
+                Suche nach
+                <input type='radio' name='type' id='type-post' checked='checked'>
+                <label for='type-post'>Posts</label>
+                <input type='radio' name='type' id='type-thread'>
+                <label for='type-thread'>Threads</label>
+            </div>
+
+            <div class='float-right'>
+                Sortieren nach
+
+                <select id='sort'>
+                    <option value='score'>Relevanz</option>
+                    <option value='pid-desc'>Neueste zuerst</option>
+                    <option value='pid-asc'>Älteste zuerst</option>
+                </select>
+            </div>
         </div>
+
     </div>
     
     <div class='row' style='display: none;' id='results-intro'>
@@ -54,7 +84,7 @@
     </div>
 </div>
 
-<template id='row-template'>
+<template id='post-template'>
     <div class='row'>
         <div class='column'>
             <strong class='field-title'></strong>
@@ -67,23 +97,44 @@
     </div>
 </template>
 
+<template id='thread-template'>
+    <div class='row'>
+        <div class='column'>
+            <strong><a href='' class='field-title'></a></strong><br>
+            ( <span class='field-subtitle'></span> )<br>
+    </div>
+</template>
+
 <script type='text/javascript'>
     document.addEventListener('DOMContentLoaded', function() {
-        query_input = document.getElementById('query');
+        var query_input = document.getElementById('query');
         query_input.addEventListener("keyup", function (event) {
             if (event.code === "Enter") {
-                do_search(query_input.value);
+                input_changed();
             }
         });
 
+        document.getElementById('type-post').onchange = input_changed;
+        // deselecting a radio button does not count as a change as per HTML
+        document.getElementById('type-thread').onchange = input_changed;
+        document.getElementById('sort').onchange = input_changed;
+
         if (query_input.value.length) {
-            do_search(query_input.value);
+            input_changed();
         }
     });
 
-    function do_search(query) {
+    function input_changed() {
+        var query = document.getElementById('query').value;
+        var type = document.getElementById('type-post').checked ? 'post' : 'thread';
+        var sort = document.getElementById('sort').value;
+
+        do_search(query, type, sort)
+    }
+
+    function do_search(query, type, sort) {
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', '../api/search?content=' + encodeURIComponent(query), true);
+        xhr.open('GET', '../api/search?content=' + encodeURIComponent(query) + '&type=' + type + '&sort=' + sort, true);
         xhr.onreadystatechange = function () {
             // lol fehlerbehandlung
             if (xhr.readyState == 4 && xhr.status == 200) {
@@ -96,7 +147,6 @@
 
     function display_results(results) {
         var result_rows = document.getElementById('results');
-        var row_template = document.getElementById('row-template');
         clear_node(result_rows);
 
         console.log(results);
@@ -106,20 +156,30 @@
         document.getElementById('field-elapsed').textContent = results.elapsed.toFixed(3);
         document.getElementById('results-intro').style = '';
 
-        for (var i = 0; i < results.results.length; i++) {
-            var result = results.results[i];
-            var row = document.importNode(row_template.content, true);
-            row.querySelector('.field-title').textContent = ''; // fixme
-            row.querySelector('.field-snippet').innerHTML = result.snippet;
-            row.querySelector('.field-snippet').href = 'http://forum.mods.de/bb/thread.php?TID=' + result.thread.tid + '&PID=' + result.pid + '#reply_' + result.pid;
-            row.querySelector('.field-thread').textContent = result.thread.title + ' (' + (result.thread.subtitle || '') + ')';
-            row.querySelector('.field-user').textContent = result.user.name;
-            row.querySelector('.field-user').href = 'http://my.mods.de/' + result.user.uid;
-            result_rows.appendChild(row);
+        if (results.type === 'post') {
+            var post_template = document.getElementById('post-template');
+            for (var i = 0; i < results.results.length; i++) {
+                var result = results.results[i];
+                var row = document.importNode(post_template.content, true);
+                row.querySelector('.field-title').textContent = ''; // fixme
+                row.querySelector('.field-snippet').innerHTML = result.snippet;
+                row.querySelector('.field-snippet').href = 'http://forum.mods.de/bb/thread.php?TID=' + result.thread.tid + '&PID=' + result.pid + '#reply_' + result.pid;
+                row.querySelector('.field-thread').textContent = result.thread.title + ' (' + (result.thread.subtitle || '') + ')';
+                row.querySelector('.field-user').textContent = result.user.name;
+                row.querySelector('.field-user').href = 'http://my.mods.de/' + result.user.uid;
+                result_rows.appendChild(row);
+            }
+        } else {
+            var thread_template = document.getElementById('thread-template');
+            for (var i = 0; i < results.results.length; i++) {
+                var result = results.results[i];
+                var row = document.importNode(thread_template.content, true);
+                row.querySelector('.field-title').textContent = result.title;
+                row.querySelector('.field-title').href = 'http://forum.mods.de/bb/thread.php?TID=' + result.tid;
+                row.querySelector('.field-subtitle').textContent = result.subtitle;
+                result_rows.appendChild(row);
+            }
         }
-
-
-
     }
 
     function clear_node(node) {

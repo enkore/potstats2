@@ -330,11 +330,31 @@ def daily_stats():
 @app.route('/api/search')
 @cache_api_view
 def search():
+    content = request_arg('content', str)
+    type = request_arg('type', str)
+    sort = request_arg('sort', str, default='score')
+    if type not in ('post', 'thread'):
+        raise APIError('Invalid value for type: %r' % type)
+
+    if sort == 'score':
+        sorting = ['_score']
+    elif sort == 'pid-asc':
+        sorting = [
+            {'pid': {'order': 'asc'}},
+            '_score',
+        ]
+    elif sort == 'pid-desc':
+        sorting = [
+            {'pid': {'order': 'desc'}},
+            '_score',
+        ]
+    else:
+        raise APIError('Invalid value for sort: %r' % sort)
+
     session = get_session()
     t0 = time.perf_counter()
     es = config.elasticsearch_client()
-    content = request_arg('content', str)
-    es_result = es.search('pot', 'post', {
+    es_result = es.search('pot', type, {
         'query': {
             'match': {
                 'content': content,
@@ -346,6 +366,7 @@ def search():
                 'content': {},
             },
         },
+        'sort': sorting,
     })
     count = es_result['hits']['total']
     results = [dict(
@@ -368,7 +389,12 @@ def search():
         result['thread'] = post.thread
 
     td = time.perf_counter() - t0
-    return json_response({'count': count, 'results': results, 'elapsed': td})
+    return json_response({
+        'count': count,
+        'type': type,
+        'results': results,
+        'elapsed': td
+    })
 
 
 @app.route('/api/')

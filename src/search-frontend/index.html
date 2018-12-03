@@ -44,7 +44,8 @@
     
     <div class='row' style='display: none;' id='results-intro'>
         <div class='column'>
-            <span id='field-count'></span> Ergebnisse, zeige nur die ersten <span id='field-shown'></span>.
+            <span id='field-count'></span> Ergebnisse in <span id='field-elapsed'></span>&nbsp;s gefunden,
+            zeige nur die ersten <span id='field-shown'></span>.
         </div>
     </div>
 
@@ -102,6 +103,7 @@
 
         document.getElementById('field-count').textContent = results.count;
         document.getElementById('field-shown').textContent = results.results.length;
+        document.getElementById('field-elapsed').textContent = results.elapsed.toFixed(3);
         document.getElementById('results-intro').style = '';
 
         for (var i = 0; i < results.results.length; i++) {

@@ -370,6 +370,8 @@ def search():
             'multi_match': {
                 'query': content,
                 'fields': ['title', 'subtitle'],
+                'type': 'phrase',
+                'slop': 100,
             }
         }
 

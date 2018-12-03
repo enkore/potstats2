@@ -3,9 +3,10 @@ import os
 import signal
 import select
 import sys
+import threading
 from urllib.parse import urlparse
+from queue import Queue
 from time import perf_counter
-from itertools import chain
 
 import click
 from sqlalchemy import bindparam, and_, func
@@ -13,13 +14,19 @@ from sqlalchemy.dialects.postgresql import insert
 from pyroaring import BitMap
 from lxml import html
 
+try:
+    import elasticsearch
+    import elasticsearch.helpers
+except ImportError:
+    elasticsearch = False
+
 from . import dal, config
 from .db import get_session, TierType
 from .db import Post, PostContent
 from .db import PostLinks, PostQuotes, LinkRelation, LinkType
 from .db import PosterStats, DailyStats, QuoteRelation
-from .db import User, MyModsUserStaging, UserTier, AccountState
-from .util import ElapsedProgressBar, chunk_query
+from .db import MyModsUserStaging, UserTier, AccountState
+from .util import ElapsedProgressBar
 
 
 @click.command()
@@ -78,6 +85,24 @@ def iter_posts(session, nchild, pids, chunk_size=10000):
         last_pid = posts[-1].pid
 
 
+def elasticsearch_client():
+    if elasticsearch:
+        return elasticsearch.Elasticsearch()
+
+
+ESP_POISON = object()
+
+
+def elasticsearch_pusher(queue):
+    es = elasticsearch_client()
+    while True:
+        bodies = queue.get()
+        if bodies is ESP_POISON:
+            break
+        actions = [dict(_index='pot', _type='post', _source=body) for body in bodies]
+        elasticsearch.helpers.bulk(es, actions)
+
+
 def analyze_posts_process(nchild, progress_fd, pids):
     quote_insert_stmt = insert(PostQuotes.__table__)
     quote_insert_stmt = quote_insert_stmt.on_conflict_do_update(
@@ -95,10 +120,14 @@ def analyze_posts_process(nchild, progress_fd, pids):
 
     quotes = []
     urls = []
+    search_contents = []
+    elasticsearch_queue = Queue()
+    elasticsearch_thread = threading.Thread(target=elasticsearch_pusher, args=(elasticsearch_queue,))
+    elasticsearch_thread.start()
     n = 0
 
     for post in iter_posts(session, nchild, pids):
-        analyze_post(post, pids, quotes, urls)
+        analyze_post(post, pids, quotes, urls, search_contents)
         n += 1
 
         if n > 2000:
@@ -111,14 +140,21 @@ def analyze_posts_process(nchild, progress_fd, pids):
         if len(urls) > 1000:
             session.execute(url_insert_stmt, urls)
             urls.clear()
+        if len(search_contents) > 1000:
+            elasticsearch_queue.put(search_contents)
+            search_contents = []
 
     if quotes:
         session.execute(quote_insert_stmt, quotes)
     if urls:
         session.execute(url_insert_stmt, urls)
+    if search_contents:
+        elasticsearch_queue.put(search_contents)
     quotes.clear()
     urls.clear()
     session.commit()
+    elasticsearch_queue.put(ESP_POISON)
+    elasticsearch_thread.join()
 
     os.write(progress_fd, n.to_bytes(4, byteorder='little'))
     os.write(progress_fd, b'\xff' * 4)
@@ -143,6 +179,9 @@ def analyze_posts(session):
     session.query(PostQuotes).delete()
     session.query(PostLinks).delete()
     session.commit()
+    es = elasticsearch_client()
+    if es:
+        es.indices.delete('pot', ignore=[404])
 
     num_posts = len(pids)
 
@@ -206,7 +245,7 @@ def bake_quote_relation(session):
     print('Baked quote relation ({} rows) in {:.1f} s.'.format(session.query(QuoteRelation).count(), elapsed))
 
 
-def analyze_post(post, pids, quotes, urls):
+def analyze_post(post, pids, quotes, urls, search_contents=None):
     in_tag = False
     in_quoted_string = False
     capture_contents = False
@@ -256,8 +295,18 @@ def analyze_post(post, pids, quotes, urls):
 
         urls.append(dict(pid=post.pid, url=url, domain=domain, count=1, type=link_type))
 
+    def index_for_search(post, original_content):
+        if search_contents is not None:
+            search_contents.append(dict(
+                poster_uid=post.poster_uid,
+                content=original_content,
+                title=post.title,
+            ))
+
     if not post.content:
         return
+
+    original_content = ''
 
     for char in post.content:
         if not in_quoted_string and char == '[':
@@ -301,6 +350,11 @@ def analyze_post(post, pids, quotes, urls):
                 in_quoted_string = not in_quoted_string
         elif capture_contents:
             tag_contents += char
+        if quote_level == 0:
+            original_content += char
+
+    if original_content:
+        index_for_search(post, original_content)
 
 
 def parse_user_profiles(session):

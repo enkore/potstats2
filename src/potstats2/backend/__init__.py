@@ -336,16 +336,20 @@ def search():
     if type not in ('post', 'thread'):
         raise APIError('Invalid value for type: %r' % type)
 
+    oid = 'pid' if type == 'post' else 'tid'
+
+    # sue me, mccabe
+
     if sort == 'score':
         sorting = ['_score']
-    elif sort == 'pid-asc':
+    elif sort == 'date-asc':
         sorting = [
-            {'pid': {'order': 'asc'}},
+            {oid: {'order': 'asc'}},
             '_score',
         ]
-    elif sort == 'pid-desc':
+    elif sort == 'date-desc':
         sorting = [
-            {'pid': {'order': 'desc'}},
+            {oid: {'order': 'desc'}},
             '_score',
         ]
     else:
@@ -354,12 +358,23 @@ def search():
     session = get_session()
     t0 = time.perf_counter()
     es = config.elasticsearch_client()
-    es_result = es.search('pot', type, {
-        'query': {
+
+    if type == 'post':
+        query = {
             'match': {
                 'content': content,
-            },
-        },
+            }
+        }
+    else:
+        query = {
+            'multi_match': {
+                'query': content,
+                'fields': ['title', 'subtitle'],
+            }
+        }
+
+    es_result = es.search('pot' if type == 'post' else type, type, {
+        'query': query,
         'highlight': {
             'encoder': 'html',
             'fields': {
@@ -369,24 +384,33 @@ def search():
         'sort': sorting,
     })
     count = es_result['hits']['total']
-    results = [dict(
-        score=r['_score'],
-        pid=r['_source']['pid'],
-        poster_uid=r['_source']['poster_uid'],
-        snippet=' … '.join(r['highlight']['content'])
-    ) for r in es_result['hits']['hits']]
 
-    posts = dict(
-        session
-        .query(db.Post.pid, db.Post)
-        .options(joinedload('poster'), joinedload('thread'))
-        .filter(db.Post.pid.in_([result['pid'] for result in results]))
-        .all()
-    )
-    for result in results:
-        post = posts[result['pid']]
-        result['user'] = post.poster
-        result['thread'] = post.thread
+    if type == 'post':
+        results = [dict(
+            score=r['_score'],
+            pid=r['_source']['pid'],
+            poster_uid=r['_source']['poster_uid'],
+            snippet=' … '.join(r['highlight']['content'])
+        ) for r in es_result['hits']['hits']]
+
+        posts = dict(
+            session
+            .query(db.Post.pid, db.Post)
+            .options(joinedload('poster'), joinedload('thread'))
+            .filter(db.Post.pid.in_([result['pid'] for result in results]))
+            .all()
+        )
+        for result in results:
+            post = posts[result['pid']]
+            result['user'] = post.poster
+            result['thread'] = post.thread
+    else:
+        results = [dict(
+            score=r['_score'],
+            title=r['_source']['title'],
+            subtitle=r['_source']['subtitle'],
+            tid=r['_source']['tid'],
+        ) for r in es_result['hits']['hits']]
 
     td = time.perf_counter() - t0
     return json_response({

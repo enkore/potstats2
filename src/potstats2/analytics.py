@@ -20,7 +20,7 @@ except ImportError:
     pass
 
 from . import dal, config
-from .db import get_session, TierType
+from .db import get_session, TierType, Thread
 from .db import Post, PostContent
 from .db import PostLinks, PostQuotes, LinkRelation, LinkType
 from .db import PosterStats, DailyStats, QuoteRelation
@@ -37,6 +37,7 @@ def main(skip_posts):
     if not skip_posts:
         analyze_posts(session)
 
+    index_threads(session)
     parse_user_profiles(session)
     aggregate_post_links(session)
     bake_poster_stats(session)
@@ -178,7 +179,7 @@ def analyze_posts(session):
     es = config.elasticsearch_client()
     if es:
         es.indices.delete('pot', ignore=[404])
-        es.indices.create(index='pot', body={
+        es.indices.create('pot', body={
             'settings': {
                 'refresh_interval': '300s',
             },
@@ -204,6 +205,7 @@ def analyze_posts(session):
                 }
             }
         })
+
     num_posts = len(pids)
 
     children = {}
@@ -229,7 +231,49 @@ def analyze_posts(session):
                 else:
                     bar.update(int.from_bytes(v, byteorder='little'))
 
+    if es:
+        es.indices.refresh('pot')
+
     print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(bar.pos, bar.elapsed, num_posts / bar.elapsed))
+
+
+def index_threads(session):
+    es = config.elasticsearch_client()
+    if not es:
+        return
+
+    es.indices.delete('thread', ignore=[404])
+    es.indices.create('thread', body={
+        'settings': {
+            'refresh_interval': '300s',
+        },
+        'mappings': {
+            'thread': {
+                'properties': {
+                    'title': {
+                        'type': 'text',
+                        'analyzer': 'german',
+                    },
+                    'subtitle': {
+                        'type': 'text',
+                        'analyzer': 'german',
+                    },
+                    'tid': {
+                        'type': 'integer',
+                        'index': False,
+                    },
+                }
+            }
+        }
+    })
+
+    t0 = perf_counter()
+    threads = session.query(Thread.tid, Thread.title, Thread.subtitle).all()
+    actions = [dict(_index='thread', _type='thread', _source=thread._asdict()) for thread in threads]
+    elasticsearch.helpers.bulk(es, actions)
+    es.indices.refresh('thread')
+    elapsed = perf_counter() - t0
+    print('Indexed {} threads in {:.1f} s.'.format(len(threads), elapsed))
 
 
 def aggregate_post_links(session):

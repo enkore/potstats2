@@ -113,7 +113,7 @@
             row.querySelector('.field-snippet').innerHTML = result.snippet;
             row.querySelector('.field-snippet').href = 'http://forum.mods.de/bb/thread.php?TID=' + result.thread.tid + '&PID=' + result.pid + '#reply_' + result.pid;
             // TODO link thread, user
-            row.querySelector('.field-thread').textContent = result.thread.title + ' (' + result.thread.subtitle + ')';
+            row.querySelector('.field-thread').textContent = result.thread.title + ' (' + (result.thread.subtitle || '') + ')';
             row.querySelector('.field-user').textContent = result.user.name;
 
             result_rows.appendChild(row);

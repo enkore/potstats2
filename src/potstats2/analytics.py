@@ -416,7 +416,7 @@ def analyze_post(post, pids, quotes, urls, search_contents=None):
                 in_quoted_string = not in_quoted_string
         elif capture_contents:
             tag_contents += char
-        if quote_level == 0:
+        if quote_level == 0 and not in_tag and char not in ('[', ']'):
             original_content += char
 
     if original_content:

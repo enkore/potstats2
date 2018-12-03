@@ -1,9 +1,12 @@
 import configparser
 import datetime
 import json
+import os.path
+import time
 
-from flask import Flask, request, Response, url_for, g
+from flask import Flask, request, Response, url_for, g, send_file
 from sqlalchemy import func, desc, tuple_, column
+from sqlalchemy.orm import joinedload
 
 from ..db import Post, User, LinkType, Thread
 from .. import db, dal, config
@@ -324,6 +327,50 @@ def daily_stats():
     return json_response({'series': series})
 
 
+@app.route('/api/search')
+@cache_api_view
+def search():
+    session = get_session()
+    t0 = time.perf_counter()
+    es = config.elasticsearch_client()
+    content = request_arg('content', str)
+    es_result = es.search('pot', 'post', {
+        'query': {
+            'match': {
+                'content': content,
+            },
+        },
+        'highlight': {
+            'encoder': 'html',
+            'fields': {
+                'content': {},
+            },
+        },
+    })
+    count = es_result['hits']['total']
+    results = [dict(
+        score=r['_score'],
+        pid=r['_source']['pid'],
+        poster_uid=r['_source']['poster_uid'],
+        snippet=' … '.join(r['highlight']['content'])
+    ) for r in es_result['hits']['hits']]
+
+    posts = dict(
+        session
+        .query(db.Post.pid, db.Post)
+        .options(joinedload('poster'), joinedload('thread'))
+        .filter(db.Post.pid.in_([result['pid'] for result in results]))
+        .all()
+    )
+    for result in results:
+        post = posts[result['pid']]
+        result['user'] = post.poster
+        result['thread'] = post.thread
+
+    td = time.perf_counter() - t0
+    return json_response({'count': count, 'results': results, 'elapsed': td})
+
+
 @app.route('/api/')
 def api():
     apis = []
@@ -335,4 +382,9 @@ def api():
 
 def main():
     print('Only for development!')
-    app.run()
+
+    @app.route('/search/')
+    def search_frontend():
+        return send_file(os.path.join(os.path.dirname(__file__), '..', '..', 'search-frontend', 'index.html'))
+
+    app.run(debug=True)

@@ -31,6 +31,9 @@ setup(
             'redis',
             'blinker'
         ],
+        'search': [
+            'elasticsearch',
+        ]
     },
 
     description='potstats2',

@@ -5,6 +5,13 @@ import os.path
 import sys
 from collections import namedtuple
 
+try:
+    import elasticsearch
+    import elasticsearch.helpers
+except ImportError:
+    elasticsearch = False
+
+
 NO_DEFAULT = object()
 Setting = namedtuple('Setting', 'description default')
 
@@ -74,3 +81,8 @@ def enter_postmortem_debugger(type, value, tb):
 def setup_debugger():
     if ast.literal_eval(get('DEBUG')):
         sys.excepthook = enter_postmortem_debugger
+
+
+def elasticsearch_client():
+    if elasticsearch:
+        return elasticsearch.Elasticsearch(timeout=None)

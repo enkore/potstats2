@@ -85,4 +85,4 @@ def setup_debugger():
 
 def elasticsearch_client():
     if elasticsearch:
-        return elasticsearch.Elasticsearch()
+        return elasticsearch.Elasticsearch(timeout=None)

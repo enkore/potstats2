@@ -89,6 +89,7 @@
             <a href='' class='field-snippet'></a>
         </div>
         <div class='column'>
+            Gepostet am: <span class='field-timestamp'></span><br>
             Im Thread: <span class='field-thread'></span><br>
             Von: <a href='' class='field-user'></a>
         </div>
@@ -100,6 +101,7 @@
         <div class='column'>
             <strong><a href='' class='field-title'></a></strong><br>
             ( <span class='field-subtitle'></span> )<br>
+        </div>
     </div>
 </template>
 
@@ -163,6 +165,7 @@
                 row.querySelector('.field-thread').textContent = result.thread.title + ' (' + (result.thread.subtitle || '') + ')';
                 row.querySelector('.field-user').textContent = result.user.name;
                 row.querySelector('.field-user').href = 'http://my.mods.de/' + result.user.uid;
+                row.querySelector('.field-timestamp').textContent = (new Date(result.timestamp * 1000)).toLocaleString('de-DE');
                 result_rows.appendChild(row);
             }
         } else {

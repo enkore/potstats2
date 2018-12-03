@@ -395,7 +395,7 @@ def search():
             score=r['_score'],
             pid=r['_source']['pid'],
             poster_uid=r['_source']['poster_uid'],
-            snippet=' … '.join(r['highlight']['content'])
+            snippet=' … '.join(r['highlight']['content']),
         ) for r in es_result['hits']['hits']]
 
         posts = dict(
@@ -409,6 +409,7 @@ def search():
             post = posts[result['pid']]
             result['user'] = post.poster
             result['thread'] = post.thread
+            result['timestamp'] = post.timestamp.timestamp()
     else:
         results = [dict(
             score=r['_score'],

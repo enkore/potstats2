@@ -324,6 +324,34 @@ def daily_stats():
     return json_response({'series': series})
 
 
+@app.route('/api/search')
+@cache_api_view
+def search():
+    es = config.elasticsearch_client()
+    content = request_arg('content', str)
+    es_result = es.search('pot', 'post', {
+        'query': {
+            'match': {
+                'content': content,
+            },
+        },
+        'highlight': {
+            'encoder': 'html',
+            'fields': {
+                'content': {},
+            },
+        },
+    })
+    count = es_result['hits']['total']
+    results = [dict(
+        score=r['_score'],
+        poster_uid=r['_source']['poster_uid'],
+        snippet=' … '.join(r['highlight']['content'])
+    ) for r in es_result['hits']['hits']]
+
+    return json_response({'count': count, 'results': results})
+
+
 @app.route('/api/')
 def api():
     apis = []

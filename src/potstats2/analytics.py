@@ -15,10 +15,9 @@ from pyroaring import BitMap
 from lxml import html
 
 try:
-    import elasticsearch
     import elasticsearch.helpers
 except ImportError:
-    elasticsearch = False
+    pass
 
 from . import dal, config
 from .db import get_session, TierType
@@ -85,16 +84,11 @@ def iter_posts(session, nchild, pids, chunk_size=10000):
         last_pid = posts[-1].pid
 
 
-def elasticsearch_client():
-    if elasticsearch:
-        return elasticsearch.Elasticsearch()
-
-
 ESP_POISON = object()
 
 
 def elasticsearch_pusher(queue):
-    es = elasticsearch_client()
+    es = config.elasticsearch_client()
     while True:
         bodies = queue.get()
         if bodies is ESP_POISON:
@@ -179,7 +173,7 @@ def analyze_posts(session):
     session.query(PostQuotes).delete()
     session.query(PostLinks).delete()
     session.commit()
-    es = elasticsearch_client()
+    es = config.elasticsearch_client()
     if es:
         es.indices.delete('pot', ignore=[404])
 

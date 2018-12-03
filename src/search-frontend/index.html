@@ -62,7 +62,7 @@
         </div>
         <div class='column'>
             Im Thread: <span class='field-thread'></span><br>
-            Von: <span class='field-user'></span>
+            Von: <a href='' class='field-user'></a>
         </div>
     </div>
 </template>
@@ -112,10 +112,9 @@
             row.querySelector('.field-title').textContent = ''; // fixme
             row.querySelector('.field-snippet').innerHTML = result.snippet;
             row.querySelector('.field-snippet').href = 'http://forum.mods.de/bb/thread.php?TID=' + result.thread.tid + '&PID=' + result.pid + '#reply_' + result.pid;
-            // TODO link thread, user
             row.querySelector('.field-thread').textContent = result.thread.title + ' (' + (result.thread.subtitle || '') + ')';
             row.querySelector('.field-user').textContent = result.user.name;
-
+            row.querySelector('.field-user').href = 'http://my.mods.de/' + result.user.uid;
             result_rows.appendChild(row);
         }
 

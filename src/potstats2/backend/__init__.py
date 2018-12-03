@@ -380,7 +380,10 @@ def search():
         'highlight': {
             'encoder': 'html',
             'fields': {
-                'content': {},
+                'content': {
+                    'pre_tags': ['<strong>'],
+                    'post_tags': ['</strong>'],
+                },
             },
         },
         'sort': sorting,

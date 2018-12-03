@@ -177,7 +177,9 @@ def analyze_posts(session):
     if es:
         es.indices.delete('pot', ignore=[404])
         es.indices.create(index='pot', body={
-            'settings': {},
+            'settings': {
+                'refresh_interval': '300s',
+            },
             'mappings': {
                 'post': {
                     'properties': {

@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import signal
 import select
@@ -30,12 +31,13 @@ from .util import ElapsedProgressBar
 
 @click.command()
 @click.option('--skip-posts', is_flag=True, default=False)
-def main(skip_posts):
+@click.option('--state-file', type=click.Path(dir_okay=False))
+def main(skip_posts, state_file):
     config.setup_debugger()
     session = get_session()
 
     if not skip_posts:
-        analyze_posts(session)
+        analyze_posts(session, state_file)
 
     index_threads(session)
     parse_user_profiles(session)
@@ -52,8 +54,8 @@ def main(skip_posts):
 def iter_posts(session, nchild, pids, chunk_size=10000):
     pivots = (pids[len(pids) // 4], pids[len(pids) // 2], pids[len(pids) // 4 * 3])
     if nchild == 0:
-        ec = PostContent.pid < pivots[0]
-        ep = Post.pid < pivots[0]
+        ec = and_(PostContent.pid >= pids[0], PostContent.pid < pivots[0])
+        ep = and_(Post.pid >= pids[0], Post.pid < pivots[0])
     elif nchild == 1:
         ec = and_(PostContent.pid >= pivots[0], PostContent.pid < pivots[1])
         ep = and_(Post.pid >= pivots[0], Post.pid < pivots[1])
@@ -65,7 +67,15 @@ def iter_posts(session, nchild, pids, chunk_size=10000):
         ep = Post.pid >= pivots[2]
 
     start_pid = bindparam('start_pid')
-    contents = session.query(PostContent).filter(PostContent.pid > start_pid).filter(ec).order_by(PostContent.pid).limit(chunk_size).subquery()
+    contents = (
+        session
+        .query(PostContent)
+        .filter(PostContent.pid > start_pid)
+        .filter(ec)
+        .order_by(PostContent.pid)
+        .limit(chunk_size)
+        .subquery()
+    )
     query = (
         session
         .query(Post.pid, Post.poster_uid, contents.c.content, contents.c.title)
@@ -100,7 +110,7 @@ def elasticsearch_pusher(queue):
         elasticsearch.helpers.bulk(es, actions, chunk_size=10000, max_chunk_bytes=100 * 1024 * 1024)
 
 
-def analyze_posts_process(nchild, progress_fd, pids):
+def analyze_posts_process(nchild, progress_fd, pids, pids_to_process):
     quote_insert_stmt = insert(PostQuotes.__table__)
     quote_insert_stmt = quote_insert_stmt.on_conflict_do_update(
         index_elements=PostQuotes.__table__.primary_key.columns,
@@ -118,12 +128,12 @@ def analyze_posts_process(nchild, progress_fd, pids):
     quotes = []
     urls = []
     search_contents = []
-    elasticsearch_queue = Queue(maxsize=10)  # maximum of ~10×1000 = 10k pending ES index updates
+    elasticsearch_queue = Queue(maxsize=10)  # maximum of ~10×10000 = 100k pending ES index updates
     elasticsearch_thread = threading.Thread(target=elasticsearch_pusher, args=(elasticsearch_queue,))
     elasticsearch_thread.start()
     n = 0
 
-    for post in iter_posts(session, nchild, pids):
+    for post in iter_posts(session, nchild, pids_to_process):
         analyze_post(post, pids, quotes, urls, search_contents)
         n += 1
 
@@ -157,7 +167,27 @@ def analyze_posts_process(nchild, progress_fd, pids):
     os.write(progress_fd, b'\xff' * 4)
 
 
-def analyze_posts(session):
+def read_state_file(state_file):
+    try:
+        with open(state_file, 'r') as fd:
+            return json.load(fd)
+    except (FileNotFoundError, TypeError):
+        print('State file %s does not exist, starting from scratch' % state_file)
+        return {
+            'last_pid': 0,
+        }
+
+
+def write_state_file(state_file, last_pid):
+    if not state_file:
+        return
+    with open(state_file, 'w') as fd:
+        json.dump({
+            'last_pid': last_pid,
+        }, fd)
+
+
+def analyze_posts(session, state_file):
     pids = BitMap()
     last_pid = None
     while True:
@@ -173,11 +203,23 @@ def analyze_posts(session):
     bitmap_size = len(pids.serialize())
     print('PID bitmap size %d bytes, %d entries, %.2f bits per entry' % (bitmap_size, len(pids), bitmap_size / len(pids) * 8))
 
+    state = read_state_file(state_file)
+    pids_to_process = pids.to_array()
+    try:
+        slice_index = pids_to_process.index(state['last_pid'])
+    except ValueError:
+        slice_index = 0
+    pids_to_process = pids_to_process[slice_index:]
+    pids_to_process = BitMap(pids_to_process)
+
+    num_posts = len(pids_to_process)
+    continuing = bool(slice_index)
+
     session.query(PostQuotes).delete()
     session.query(PostLinks).delete()
     session.commit()
     es = config.elasticsearch_client()
-    if es:
+    if es and not continuing:
         es.indices.delete('post', ignore=[404])
         es.indices.create('post', body={
             'settings': {
@@ -206,8 +248,6 @@ def analyze_posts(session):
             }
         })
 
-    num_posts = len(pids)
-
     children = {}
     for nchild in range(4):
         p, c = os.pipe()
@@ -215,7 +255,7 @@ def analyze_posts(session):
         if not child_pid:
             progress_fd = c
             session.close()
-            analyze_posts_process(nchild, progress_fd, pids)
+            analyze_posts_process(nchild, progress_fd, pids, pids_to_process)
             sys.exit(0)
         children[p] = child_pid
 
@@ -235,6 +275,8 @@ def analyze_posts(session):
         es.indices.refresh('post')
 
     print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(bar.pos, bar.elapsed, num_posts / bar.elapsed))
+
+    write_state_file(state_file, pids_to_process.max())
 
 
 def index_threads(session):
@@ -270,7 +312,7 @@ def index_threads(session):
     t0 = perf_counter()
     threads = session.query(Thread.tid, Thread.title, Thread.subtitle).all()
     actions = [dict(_index='thread', _type='thread', _source=thread._asdict()) for thread in threads]
-    elasticsearch.helpers.bulk(es, actions)
+    elasticsearch.helpers.bulk(es, actions, chunk_size=200000, max_chunk_bytes=100 * 1024 * 1024)
     es.indices.refresh('thread')
     elapsed = perf_counter() - t0
     print('Indexed {} threads in {:.1f} s.'.format(len(threads), elapsed))
@@ -458,7 +500,6 @@ def get_user_tier(session, user, page):
         'blau': 'b',
         'hellblau': 'h',
     }
-
 
     if len(bars_img) in (9, 11):
         # Usually 11, but some ranks miss links|rechts, making it 9. E.g. UID#12216.

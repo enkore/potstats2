@@ -72,8 +72,7 @@
     
     <div class='row' style='display: none;' id='results-intro'>
         <div class='column'>
-            <span id='field-count'></span> Ergebnisse in <span id='field-elapsed'></span>&nbsp;s gefunden,
-            zeige nur die ersten <span id='field-shown'></span>.
+            <span id='field-count'></span> Ergebnisse in <span id='field-elapsed'></span>&nbsp;s gefunden.
         </div>
     </div>
 
@@ -84,14 +83,14 @@
 
 <template id='post-template'>
     <div class='row'>
-        <div class='column'>
+        <div class='column column-50'>
             <strong class='field-title'></strong>
             <a href='' class='field-snippet'></a>
         </div>
-        <div class='column'>
-            Gepostet am: <span class='field-timestamp'></span><br>
-            Im Thread: <span class='field-thread'></span><br>
-            Von: <a href='' class='field-user'></a>
+        <div class='column column-50'>
+            Am <span class='field-timestamp'></span>
+            von <a href='' class='field-user'></a> gepostet.<br>
+            In Thread: <span class='field-thread'></span>
         </div>
     </div>
 </template>
@@ -106,6 +105,8 @@
 </template>
 
 <script type='text/javascript'>
+    var exhausted = false;
+
     document.addEventListener('DOMContentLoaded', function() {
         var query_input = document.getElementById('query');
         query_input.addEventListener("keyup", function (event) {
@@ -118,39 +119,57 @@
         // deselecting a radio button does not count as a change as per HTML
         document.getElementById('type-thread').onchange = input_changed;
         document.getElementById('sort').onchange = input_changed;
+        window.onscroll = may_fetch_more;
 
         if (query_input.value.length) {
-            input_changed();
+            do_search(0);
         }
     });
 
+    function may_fetch_more() {
+        if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight - 100) {
+            fetch_more();
+        }
+    }
+
+    function fetch_more() {
+        if (exhausted) {
+            console.log('No more data to fetch');
+            return;
+        }
+        do_search(results.childElementCount);
+    }
+
     function input_changed() {
+        exhausted = false;
+        do_search(0);
+    }
+
+    function do_search(offset) {
         var query = document.getElementById('query').value;
         var type = document.getElementById('type-post').checked ? 'post' : 'thread';
         var sort = document.getElementById('sort').value;
-
-        do_search(query, type, sort)
-    }
-
-    function do_search(query, type, sort) {
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', '../api/search?content=' + encodeURIComponent(query) + '&type=' + type + '&sort=' + sort, true);
+        xhr.open('GET', '../api/search?content=' + encodeURIComponent(query) + '&type=' + type + '&sort=' + sort + '&offset=' + offset, true);
         xhr.onreadystatechange = function () {
             // lol fehlerbehandlung
             if (xhr.readyState == 4 && xhr.status == 200) {
                 var results = JSON.parse(xhr.responseText);
-                display_results(results);
+                display_results(results, offset > 0);
+                exhausted = results.results.length < 30;
+                may_fetch_more();
             }
         };
         xhr.send();
     }
 
-    function display_results(results) {
+    function display_results(results, append) {
         var result_rows = document.getElementById('results');
-        clear_node(result_rows);
+        if (!append) {
+            clear_node(result_rows);
+        }
 
         document.getElementById('field-count').textContent = results.count;
-        document.getElementById('field-shown').textContent = results.results.length;
         document.getElementById('field-elapsed').textContent = results.elapsed.toFixed(3);
         document.getElementById('results-intro').style = '';
 

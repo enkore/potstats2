@@ -333,6 +333,7 @@ def search():
     content = request_arg('content', str)
     type = request_arg('type', str)
     sort = request_arg('sort', str, default='score')
+    offset = request_arg('offset', int, default=0)
     if type not in ('post', 'thread'):
         raise APIError('Invalid value for type: %r' % type)
 
@@ -376,6 +377,8 @@ def search():
         }
 
     es_result = es.search('pot' if type == 'post' else type, type, {
+        'from': offset,
+        'size': 30,
         'query': query,
         'highlight': {
             'encoder': 'html',

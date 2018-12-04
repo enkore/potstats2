@@ -225,6 +225,7 @@ def analyze_posts(session, state_file):
             es.indices.create('post', body={
                 'settings': {
                     'refresh_interval': '300s',
+                    'number_of_shards': 2,
                 },
                 'mappings': {
                     'post': {
@@ -288,6 +289,7 @@ def index_threads(session):
     es.indices.create('thread', body={
         'settings': {
             'refresh_interval': '300s',
+            'number_of_shards': 1,
         },
         'mappings': {
             'thread': {

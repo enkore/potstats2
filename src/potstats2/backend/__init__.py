@@ -376,7 +376,7 @@ def search():
             }
         }
 
-    es_result = es.search('pot' if type == 'post' else type, type, {
+    es_result = es.search(type, type, {
         'from': offset,
         'size': 30,
         'query': query,

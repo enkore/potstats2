@@ -96,7 +96,7 @@ def elasticsearch_pusher(queue):
         bodies = queue.get()
         if bodies is ESP_POISON:
             break
-        actions = [dict(_index='pot', _type='post', _source=body) for body in bodies]
+        actions = [dict(_index='post', _type='post', _source=body) for body in bodies]
         elasticsearch.helpers.bulk(es, actions, chunk_size=10000, max_chunk_bytes=100 * 1024 * 1024)
 
 
@@ -178,8 +178,8 @@ def analyze_posts(session):
     session.commit()
     es = config.elasticsearch_client()
     if es:
-        es.indices.delete('pot', ignore=[404])
-        es.indices.create('pot', body={
+        es.indices.delete('post', ignore=[404])
+        es.indices.create('post', body={
             'settings': {
                 'refresh_interval': '300s',
             },
@@ -232,7 +232,7 @@ def analyze_posts(session):
                     bar.update(int.from_bytes(v, byteorder='little'))
 
     if es:
-        es.indices.refresh('pot')
+        es.indices.refresh('post')
 
     print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(bar.pos, bar.elapsed, num_posts / bar.elapsed))
 

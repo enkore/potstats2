@@ -215,34 +215,35 @@ def analyze_posts(session, state_file):
     num_posts = len(pids_to_process)
     continuing = bool(slice_index)
 
-    session.query(PostQuotes).delete()
-    session.query(PostLinks).delete()
-    session.commit()
-    es = config.elasticsearch_client()
-    if es and not continuing:
-        es.indices.delete('post', ignore=[404])
-        es.indices.create('post', body={
-            'settings': {
-                'refresh_interval': '300s',
-            },
-            'mappings': {
-                'post': {
-                    'properties': {
-                        'content': {
-                            'type': 'text',
-                            'analyzer': 'german',
-                        },
-                        'title': {
-                            'type': 'text',
-                            'analyzer': 'german',
-                        },
-                        'poster_uid': {
-                            'type': 'integer',
+    if not continuing:
+        session.query(PostQuotes).delete()
+        session.query(PostLinks).delete()
+        session.commit()
+        es = config.elasticsearch_client()
+        if es:
+            es.indices.delete('post', ignore=[404])
+            es.indices.create('post', body={
+                'settings': {
+                    'refresh_interval': '300s',
+                },
+                'mappings': {
+                    'post': {
+                        'properties': {
+                            'content': {
+                                'type': 'text',
+                                'analyzer': 'german',
+                            },
+                            'title': {
+                                'type': 'text',
+                                'analyzer': 'german',
+                            },
+                            'poster_uid': {
+                                'type': 'integer',
+                            }
                         }
                     }
                 }
-            }
-        })
+            })
 
     children = {}
     for nchild in range(4):

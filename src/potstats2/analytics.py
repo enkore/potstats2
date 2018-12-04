@@ -106,7 +106,7 @@ def elasticsearch_pusher(queue):
         bodies = queue.get()
         if bodies is ESP_POISON:
             break
-        actions = [dict(_index='post', _type='post', _source=body) for body in bodies]
+        actions = [dict(_index='post', _type='post', _id=body.pop('pid'), _source=body) for body in bodies]
         elasticsearch.helpers.bulk(es, actions, chunk_size=10000, max_chunk_bytes=100 * 1024 * 1024)
 
 
@@ -236,10 +236,6 @@ def analyze_posts(session, state_file):
                             'type': 'text',
                             'analyzer': 'german',
                         },
-                        'pid': {
-                            'type': 'integer',
-                            'index': False,
-                        },
                         'poster_uid': {
                             'type': 'integer',
                         }
@@ -300,10 +296,6 @@ def index_threads(session):
                         'type': 'text',
                         'analyzer': 'german',
                     },
-                    'tid': {
-                        'type': 'integer',
-                        'index': False,
-                    },
                 }
             }
         }
@@ -311,7 +303,7 @@ def index_threads(session):
 
     t0 = perf_counter()
     threads = session.query(Thread.tid, Thread.title, Thread.subtitle).all()
-    actions = [dict(_index='thread', _type='thread', _source=thread._asdict()) for thread in threads]
+    actions = [dict(_index='thread', _type='thread', _id=thread.tid, _source=thread._asdict()) for thread in threads]
     elasticsearch.helpers.bulk(es, actions, chunk_size=200000, max_chunk_bytes=100 * 1024 * 1024)
     es.indices.refresh('thread')
     elapsed = perf_counter() - t0

@@ -396,7 +396,7 @@ def search():
     if type == 'post':
         results = [dict(
             score=r['_score'],
-            pid=r['_source']['pid'],
+            pid=int(r['_id']),  # elasticsearch stores _id always as a string
             poster_uid=r['_source']['poster_uid'],
             snippet=' … '.join(r['highlight']['content']),
         ) for r in es_result['hits']['hits']]
@@ -418,7 +418,7 @@ def search():
             score=r['_score'],
             title=r['_source']['title'],
             subtitle=r['_source']['subtitle'],
-            tid=r['_source']['tid'],
+            tid=int(r['_id']),
         ) for r in es_result['hits']['hits']]
 
     td = time.perf_counter() - t0

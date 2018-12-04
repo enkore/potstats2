@@ -106,6 +106,7 @@
 
 <script type='text/javascript'>
     var exhausted = false;
+    var fetching = false;
 
     document.addEventListener('DOMContentLoaded', function() {
         var query_input = document.getElementById('query');
@@ -127,6 +128,9 @@
     });
 
     function may_fetch_more() {
+        if (fetching) {
+            return;
+        }
         if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight - 100) {
             fetch_more();
         }
@@ -150,6 +154,7 @@
         var type = document.getElementById('type-post').checked ? 'post' : 'thread';
         var sort = document.getElementById('sort').value;
         var xhr = new XMLHttpRequest();
+        fetching = true;
         xhr.open('GET', '../api/search?content=' + encodeURIComponent(query) + '&type=' + type + '&sort=' + sort + '&offset=' + offset, true);
         xhr.onreadystatechange = function () {
             // lol fehlerbehandlung
@@ -157,6 +162,7 @@
                 var results = JSON.parse(xhr.responseText);
                 display_results(results, offset > 0);
                 exhausted = results.results.length < 30;
+                fetching = false;
                 may_fetch_more();
             }
         };

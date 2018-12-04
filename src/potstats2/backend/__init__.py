@@ -337,18 +337,20 @@ def search():
     if type not in ('post', 'thread'):
         raise APIError('Invalid value for type: %r' % type)
 
+    oid = 'pid' if type == 'post' else 'tid'
+
     # sue me, mccabe
 
     if sort == 'score':
         sorting = ['_score']
     elif sort == 'date-asc':
         sorting = [
-            {'_id': {'order': 'asc'}},
+            {oid: {'order': 'asc'}},
             '_score',
         ]
     elif sort == 'date-desc':
         sorting = [
-            {'_id': {'order': 'desc'}},
+            {oid: {'order': 'desc'}},
             '_score',
         ]
     else:

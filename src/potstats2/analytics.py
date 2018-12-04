@@ -97,7 +97,7 @@ def elasticsearch_pusher(queue):
         if bodies is ESP_POISON:
             break
         actions = [dict(_index='pot', _type='post', _source=body) for body in bodies]
-        elasticsearch.helpers.bulk(es, actions)
+        elasticsearch.helpers.bulk(es, actions, chunk_size=10000, max_chunk_bytes=100 * 1024 * 1024)
 
 
 def analyze_posts_process(nchild, progress_fd, pids):
@@ -137,7 +137,7 @@ def analyze_posts_process(nchild, progress_fd, pids):
         if len(urls) > 1000:
             session.execute(url_insert_stmt, urls)
             urls.clear()
-        if len(search_contents) > 1000:
+        if len(search_contents) > 10000:
             elasticsearch_queue.put(search_contents)
             search_contents = []
 

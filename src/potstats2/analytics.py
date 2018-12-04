@@ -248,6 +248,12 @@ def analyze_posts(session, state_file):
                     }
                 }
             })
+    if es:
+        es.indices.put_settings({
+            'index': {
+                'refresh_interval': -1,
+            }
+        }, 'post')
 
     children = {}
     for nchild in range(4):
@@ -274,6 +280,11 @@ def analyze_posts(session, state_file):
 
     if es:
         es.indices.refresh('post')
+        es.indices.put_settings({
+            'index': {
+                'refresh_interval': '300s',
+            }
+        }, 'post')
 
     print('Analyzed {} posts in {:.1f} s ({:.0f} posts/s).'.format(bar.pos, bar.elapsed, num_posts / bar.elapsed))
 

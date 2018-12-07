@@ -214,12 +214,11 @@ def analyze_posts(session, state_file):
 
     num_posts = len(pids_to_process)
     continuing = bool(slice_index)
-
+    es = config.elasticsearch_client()
     if not continuing:
         session.query(PostQuotes).delete()
         session.query(PostLinks).delete()
         session.commit()
-        es = config.elasticsearch_client()
         if es:
             es.indices.delete('post', ignore=[404])
             es.indices.create('post', body={

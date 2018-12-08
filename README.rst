@@ -16,9 +16,6 @@ Le Stack
 - Frontend: Angular
 - Search server: ElasticSearch
 
-Public instance lives at http://potstats2.enkore.de/api/ (no TLS yet, because that would show up in public CT logs).
-That instance has GET-CORS enabled (for now) and thus the API can be used from other origins.
-
 Setup
 -----
 

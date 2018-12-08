@@ -343,8 +343,9 @@ def tokenize_query(textual_query):
         elif char == '"' and not quoted:
             accumulator = '"'
             quoted = True
-        elif char == ' ' and not quoted and accumulator:
-            yield accumulator
+        elif char == ' ' and not quoted:
+            if accumulator:
+                yield accumulator
             accumulator = ''
         else:
             accumulator += char
@@ -353,24 +354,10 @@ def tokenize_query(textual_query):
 
 
 def parse_textual_query(textual_query: str, fields, default_slop=0):
-
     bool_query = {
         'must': [],
         'must_not': [],
     }
-
-    import shlex
-    lexer = shlex.shlex(textual_query)
-    lexer.whitespace = ' '
-    lexer.whitespace_split = True
-    lexer.commenters = ''
-    lexer.quotes = '"'
-    lexer.escape = ''
-    lexer.escapedquotes = ''
-
-    print(list(lexer))
-    print(shlex.split(textual_query))
-    print(list(tokenize_query(textual_query)))
 
     stray_tokens = []
     for token in tokenize_query(textual_query):

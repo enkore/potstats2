@@ -32,6 +32,23 @@
         select {
             width: auto;
         }
+
+        .error {
+            border: 0.1rem solid #9b4dca;
+            background-color: #9b4dca;
+            color: #fff;
+            border-radius: 0.4rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            height: 3.8rem;
+            letter-spacing: .1rem;
+            line-height: 3.8rem;
+            padding: 0 3.0rem;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -70,10 +87,14 @@
 
     </div>
     
-    <div class='row' style='display: none;' id='results-intro'>
+    <div class='row hidden' id='results-intro'>
         <div class='column'>
             <span id='field-count'></span> Ergebnisse in <span id='field-elapsed'></span>&nbsp;s gefunden.
         </div>
+    </div>
+
+    <div class='row error hidden' id='results-error'>
+        Upsi: <span id='error-status'></span>
     </div>
 
     <div id='results'>
@@ -184,15 +205,21 @@
         fetching = true;
         window.location.hash = JSON.stringify(query);
         xhr.open('GET', '../api/search?content=' + encodeURIComponent(query.query) + '&type=' + query.type + '&sort=' + query.sort + '&offset=' + offset, true);
-        xhr.onreadystatechange = function () {
-            // lol fehlerbehandlung
-            if (xhr.readyState == 4 && xhr.status == 200) {
+        xhr.onload = function () {
+            if (xhr.status == 200) {
                 var results = JSON.parse(xhr.responseText);
                 display_results(results, offset > 0);
                 exhausted = results.results.length < 30;
                 fetching = false;
                 may_fetch_more();
+            } else {
+                xhr.onerror();
             }
+        };
+        xhr.onerror = function () {
+            document.getElementById('results-intro').classList.add('hidden');
+            document.getElementById('results-error').classList.remove('hidden');
+            document.getElementById('error-status').textContent = xhr.statusText;
         };
         xhr.send();
     }
@@ -205,7 +232,8 @@
 
         document.getElementById('field-count').textContent = results.count;
         document.getElementById('field-elapsed').textContent = results.elapsed.toFixed(3);
-        document.getElementById('results-intro').style = '';
+        document.getElementById('results-intro').classList.remove('hidden');
+        document.getElementById('results-error').classList.add('hidden');
 
         if (results.type === 'post') {
             var post_template = document.getElementById('post-template');

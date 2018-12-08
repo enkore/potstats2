@@ -391,6 +391,12 @@ def parse_textual_query(textual_query: str, fields, default_slop=0):
             stray_tokens.append(token)
 
     stray = ' '.join(stray_tokens)
+    if not stray and not bool_query['must'] and not bool_query['must_not']:
+        # We need at least one clause, because elasticsearch ignores "highlight" clauses
+        # when no "query" clause regarding its field exists.
+        # This adds such a query clause, but since it queries for " " it will be an implicit
+        # match-none clause.
+        stray = ' '
     if stray:
         bool_query['must'].append({
             'multi_match': {

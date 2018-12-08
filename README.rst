@@ -1,12 +1,12 @@
 potstats2
 =========
 
-A classic four-zoo enterprise architecture:
+A classic multi-zoo enterprise architecture:
 
-- Backoffice: The craler populates the database via the forum's XML API
-- Backend: A JSON-API-to-RDBMS connector
+- Backoffice: The crawler populates the database via the forum's XML API
+- Backend: An JSON-API-to-RDBMS connector
 - Frontend: Displays backend data as tables, graphs etc. and allows user interaction
-- Very High Grade Offline Transactional Analytics: potstats2-analytics
+- High Performance Offline Transactional Analytics: potstats2-analytics
 
 Le Stack
 
@@ -14,6 +14,7 @@ Le Stack
 - Database connector: sqlalchemy/psycopg2
 - HTTP adapter: flask
 - Frontend: Angular
+- Search server: ElasticSearch
 
 Public instance lives at http://potstats2.enkore.de/api/ (no TLS yet, because that would show up in public CT logs).
 That instance has GET-CORS enabled (for now) and thus the API can be used from other origins.

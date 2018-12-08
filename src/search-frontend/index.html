@@ -121,9 +121,14 @@
         document.getElementById('type-thread').onchange = input_changed;
         document.getElementById('sort').onchange = input_changed;
         window.onscroll = may_fetch_more;
+        window.onhashchange = hash_changed;
 
         if (query_input.value.length) {
+            /* browser pre-filled fields because the page was reloaded */
             do_search(0);
+        } else {
+            /* link with hash was opened */
+            hash_changed();
         }
     });
 
@@ -145,17 +150,40 @@
     }
 
     function input_changed() {
+        console.log('Input changed');
         exhausted = false;
         do_search(0);
     }
 
+    function hash_changed() {
+        var hash_query = JSON.parse(decodeURIComponent(window.location.hash.substr(1)));
+        var current_query = current_input_values();
+        var changed = (hash_query.query !== current_query.query ||
+                       hash_query.type !== current_query.type ||
+                       hash_query.sort !== current_query.sort);
+        if (changed) {
+            console.log('It a changed');
+            document.getElementById('query').value = hash_query.query;
+            document.getElementById('type-post').checked = hash_query.type === 'post';
+            document.getElementById('type-thread').checked = hash_query.type === 'thread';
+            document.getElementById('sort').value = hash_query.sort;
+        }
+    }
+
+    function current_input_values() {
+        return {
+            query: document.getElementById('query').value,
+            type: document.getElementById('type-post').checked ? 'post' : 'thread',
+            sort: document.getElementById('sort').value
+        };
+    }
+
     function do_search(offset) {
-        var query = document.getElementById('query').value;
-        var type = document.getElementById('type-post').checked ? 'post' : 'thread';
-        var sort = document.getElementById('sort').value;
+        var query = current_input_values();
         var xhr = new XMLHttpRequest();
         fetching = true;
-        xhr.open('GET', '../api/search?content=' + encodeURIComponent(query) + '&type=' + type + '&sort=' + sort + '&offset=' + offset, true);
+        window.location.hash = JSON.stringify(query);
+        xhr.open('GET', '../api/search?content=' + encodeURIComponent(query.query) + '&type=' + query.type + '&sort=' + query.sort + '&offset=' + offset, true);
         xhr.onreadystatechange = function () {
             // lol fehlerbehandlung
             if (xhr.readyState == 4 && xhr.status == 200) {

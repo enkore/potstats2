@@ -57,7 +57,7 @@
 <div class='container'>
     <div class='row row-center' style='margin: 1em 0; color: #606c76;'>
         <div class='column' style='text-align: center'>
-            <h1 style='margin-bottom: 0'>pOTsearch</h1>
+            <a href='#'><h1 style='margin-bottom: 0; color: #606c76 !important;'>pOTsearch</h1></a>
             <em>— kein Mensch braucht Google —</em>
         </div>
     </div>
@@ -171,23 +171,29 @@
     }
 
     function input_changed() {
-        console.log('Input changed');
         exhausted = false;
         do_search(0);
     }
 
     function hash_changed() {
-        var hash_query = JSON.parse(decodeURIComponent(window.location.hash.substr(1)));
+        var hash = decodeURIComponent(window.location.hash.substr(1));
+        var hash_query;
+        if (hash.length) {
+            hash_query = JSON.parse(hash);
+        } else {
+            hash_query = current_input_values();
+            hash_query.query = ''
+        }
         var current_query = current_input_values();
         var changed = (hash_query.query !== current_query.query ||
                        hash_query.type !== current_query.type ||
                        hash_query.sort !== current_query.sort);
         if (changed) {
-            console.log('It a changed');
             document.getElementById('query').value = hash_query.query;
             document.getElementById('type-post').checked = hash_query.type === 'post';
             document.getElementById('type-thread').checked = hash_query.type === 'thread';
             document.getElementById('sort').value = hash_query.sort;
+            input_changed();
         }
     }
 

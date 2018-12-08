@@ -327,6 +327,95 @@ def daily_stats():
     return json_response({'series': series})
 
 
+def tokenize_query(textual_query):
+    if textual_query.count('"') % 2:
+        # If the number of " is odd, append a " to make it even.
+        # This implicitly closes " left open.
+        textual_query += '"'
+
+    accumulator = ''
+    quoted = False
+    for char in textual_query:
+        if char == '"' and quoted:
+            yield accumulator
+            accumulator = ''
+            quoted = False
+        elif char == '"' and not quoted:
+            accumulator = '"'
+            quoted = True
+        elif char == ' ' and not quoted and accumulator:
+            yield accumulator
+            accumulator = ''
+        else:
+            accumulator += char
+    if accumulator:
+        yield accumulator
+
+
+def parse_textual_query(textual_query: str, fields, default_slop=0):
+
+    bool_query = {
+        'must': [],
+        'must_not': [],
+    }
+
+    import shlex
+    lexer = shlex.shlex(textual_query)
+    lexer.whitespace = ' '
+    lexer.whitespace_split = True
+    lexer.commenters = ''
+    lexer.quotes = '"'
+    lexer.escape = ''
+    lexer.escapedquotes = ''
+
+    print(list(lexer))
+    print(shlex.split(textual_query))
+    print(list(tokenize_query(textual_query)))
+
+    stray_tokens = []
+    for token in tokenize_query(textual_query):
+        token_type = token[0]
+        token_value = token[1:]
+        if token_type == '"':
+            bool_query['must'].append({
+                'multi_match': {
+                    'query': token_value,
+                    'fields': fields,
+                    'type': 'phrase',
+                }
+            })
+        elif token_type == '+':
+            bool_query['must'].append({
+                'multi_match': {
+                    'query': token_value,
+                    'fields': fields,
+                    'fuzziness': 0,
+                }
+            })
+        elif token_type == '-':
+            bool_query['must_not'].append({
+                'multi_match': {
+                    'query': token_value,
+                    'fields': fields,
+                    'fuzziness': 0,
+                }
+            })
+        else:
+            stray_tokens.append(token)
+
+    stray = ' '.join(stray_tokens)
+    if stray:
+        bool_query['must'].append({
+            'multi_match': {
+                'query': stray,
+                'fields': fields,
+                'slop': default_slop,
+            }
+        })
+
+    return {'bool': bool_query}
+
+
 @app.route('/api/search')
 @cache_api_view
 def search():
@@ -361,20 +450,16 @@ def search():
     es = config.elasticsearch_client()
 
     if type == 'post':
-        query = {
-            'match': {
-                'content': content,
-            }
-        }
+        parser_kwargs = dict(
+            fields=['content']
+        )
     else:
-        query = {
-            'multi_match': {
-                'query': content,
-                'fields': ['title', 'subtitle'],
-                'type': 'phrase',
-                'slop': 100,
-            }
-        }
+        parser_kwargs = dict(
+            fields=['title', 'subtitle'],
+            default_slop=100,
+        )
+
+    query = parse_textual_query(content, **parser_kwargs)
 
     es_result = es.search(type, type, {
         'from': offset,

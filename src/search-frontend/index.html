@@ -16,7 +16,7 @@
 
 
         #results .row {
-            border-top: 1px solid grey;
+            border-top: 1px solid #9b4dca;
         }
 
         a.field-snippet {
@@ -49,6 +49,17 @@
 
         .hidden {
             display: none;
+        }
+
+        @media (max-width: 40rem) {
+            .row .column.column-50 {
+                max-width: none;
+            }
+
+            .post-info {
+                border-left: 1px solid #9b4dca;
+                padding-left: 0.5rem;
+            }
         }
     </style>
 </head>
@@ -105,11 +116,11 @@
 
 <template id='post-template'>
     <div class='row'>
-        <div class='column column-50'>
+        <div class='column column-50 post-snippet'>
             <strong class='field-title'></strong>
             <a href='' class='field-snippet'></a>
         </div>
-        <div class='column column-50'>
+        <div class='column column-50 post-info'>
             Am <span class='field-timestamp'></span>
             von <a href='' class='field-user'></a> gepostet.<br>
             In Thread: <span class='field-thread'></span>

@@ -214,7 +214,16 @@ def process_board(api, session, bid, force_initial_pass):
                         dbthread.is_complete = True
                     continue
 
-                index_in_page = pids.index(dbthread.last_post.pid)
+                try:
+                    index_in_page = pids.index(dbthread.last_post.pid)
+                except ValueError:
+                    # TID#207876 PID#1243516772
+                    # Current last page is [1243516598, 1243516600, 1243516606, 1243516611, 1243516623, 1243516628, 1243516633, 1243516679, 1243516686, 1243516695, 1243516712, 1243516713, 1243516717, 1243516726, 1243516727, 1243516733, 1243516738, 1243516749]
+                    # Forum still knows PID#1243516772 exists (TID+PID navigation).
+                    # Probably hidden.
+                    print("Broken thread", dbthread.tid, "with seen but now gone PID", dbthread.last_post.pid)
+                    index_in_page = 0
+
                 index_in_thread = int(thread.find('./posts').attrib['offset']) + index_in_page
                 num_replies = int(thread.find('./number-of-replies').attrib['value'])
                 # Due to XML:number-of-replies inaccuracy this might become negative

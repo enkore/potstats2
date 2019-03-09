@@ -193,6 +193,15 @@ def process_board(api, session, bid, force_initial_pass):
                 posts = thread.findall('./posts/post')
                 merge_posts(session, dbthread, posts)
                 pids = [int(post.attrib['id']) for post in posts]
+                if not pids:
+                    # broken thread / invisibilized last post
+                    # example: TID#213929 last_post := PID#1246148592 results in empty page 50
+                    # reset last post
+                    dbthread.last_post = None
+                    tnu.start_page = 0
+                    tnu.est_number_of_posts = dbthread.est_number_of_replies
+                    session.add(tnu)
+                    continue
                 last_on_page = pids[-1] == dbthread.last_post.pid
                 last_page = int(thread.find('./number-of-pages').attrib['value']) == int(
                     thread.find('./posts').attrib['page'])

@@ -6,6 +6,7 @@ import time
 
 from flask import Flask, request, Response, url_for, g, send_file
 from sqlalchemy import func, desc, tuple_, column
+from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import joinedload
 
 from ..db import Post, User, LinkType, Thread
@@ -232,6 +233,24 @@ def poster_stats():
                                    following_uid=rows[-1]['User'].uid, following_ob=rows[-1][order_by_column])
 
     return json_response(response)
+
+
+@app.route('/api/poster-development')
+@cache_api_view
+def poster_developmental_issues():
+    session = get_session()
+
+    bid = request_arg('bid', int, default=None)
+    uid = request_arg('uid', int, default=None)
+    if uid is None:
+        user = request_arg('user', str)
+        try:
+            uid = session.query(User).filter(User.name == user).one().uid
+        except InvalidRequestError:
+            raise APIError('User not found: %s' % user)
+
+    query = dal.poster_developmental_issues(session, uid, bid)
+    return json_response({r.year: r._asdict() for r in query.all()})
 
 
 @app.route('/api/weekday-stats')

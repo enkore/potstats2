@@ -168,6 +168,35 @@ def poster_stats(session, year=None, bid=None):
     return query.from_self()
 
 
+def poster_developmental_issues(session, uid, bid=None):
+    """
+    Year-by-year "development" of a particular user.
+
+    Result columns:
+    year,
+    post_count, edit_count, avg_post_length, threads_created
+    """
+    agg = lambda f, c: f(c).label(c.name)
+
+    query = (
+        session
+        .query(
+            PosterStats.year,
+            agg(func.sum, PosterStats.post_count),
+            agg(func.sum, PosterStats.edit_count),
+            agg(func.sum, PosterStats.threads_created),
+            agg(func.sum, PosterStats.quoted_count),
+            agg(func.sum, PosterStats.quotes_count),
+            cast(func.avg(PosterStats.avg_post_length), Integer).label('avg_post_length'),
+        )
+        .filter(PosterStats.uid == uid)
+        .group_by(PosterStats.year)
+    )
+    if bid:
+        query = query.filter(PosterStats.bid == bid)
+    return query.from_self()
+
+
 def aggregate_stats_segregated_by_time(session, time_column_expression, time_column_name):
     """
     Aggregate (across all users) statistics on posts and threads, grouped by time_column_expression.

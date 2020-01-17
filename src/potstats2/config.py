@@ -1,8 +1,10 @@
 import ast
 import configparser
+import faulthandler
 import os
 import os.path
 import sys
+import signal
 from collections import namedtuple
 
 try:
@@ -81,6 +83,7 @@ def enter_postmortem_debugger(type, value, tb):
 def setup_debugger():
     if ast.literal_eval(get('DEBUG')):
         sys.excepthook = enter_postmortem_debugger
+    faulthandler.register(signal.SIGUSR1)
 
 
 def elasticsearch_client():

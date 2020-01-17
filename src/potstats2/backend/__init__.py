@@ -1,5 +1,7 @@
 import configparser
+import csv
 import datetime
+import io
 import json
 import os.path
 import time
@@ -250,7 +252,19 @@ def poster_developmental_issues():
             raise APIError('User not found: %s' % user)
 
     query = dal.poster_developmental_issues(session, uid, bid)
-    return json_response({r.year: r._asdict() for r in query.all()})
+
+    if 'csv' in request.args:
+        fd = io.StringIO()
+        writer = csv.writer(fd)
+        writer.writerow(['year', 'post_count', 'edit_count', 'threads_created', 'quoted_count', 'quotes_count', 'avg_post_length'])
+        for row in query.all():
+            writer.writerow(row)
+
+        response = Response(fd.getvalue(), mimetype='text/csv')
+        response.headers["Content-Disposition"] = "attachment; filename=user-development-%d.csv" % uid
+        return response
+    else:
+        return json_response({r.year: r._asdict() for r in query.all()})
 
 
 @app.route('/api/weekday-stats')

@@ -1,0 +1,30 @@
+<div class="container" fxLayout="column" >
+  <mat-card fxFlex="20%">
+  <mat-card-content>
+    <mat-form-field>
+      <input matInput type="text" placeholder="User" [formControl]="user">
+    </mat-form-field>
+
+    <mat-form-field>
+      <input matInput type="text" placeholder="UID" [formControl]="uid">
+    </mat-form-field>
+  </mat-card-content>
+</mat-card>
+
+
+  <mat-card fxFlex="20%">
+<mat-card-header>
+  <h4>{{ this.activeUser | async }}</h4>
+</mat-card-header>
+    <mat-card-content>
+
+  <app-app-bar-graph
+    *ngIf="dataSource | async"
+    [selectableStats]="selectableStats"
+    xLabel="Jahr"
+    xValue="year"
+    [dataSource]="dataSource">
+  </app-app-bar-graph>
+    </mat-card-content>
+  </mat-card>
+</div>

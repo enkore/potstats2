@@ -74,5 +74,30 @@ export interface HourlyStats {
 
 export interface ContactInfo {
   name: string;
-  contact_info: string
+  contact_info: string;
+}
+
+export interface UserInfo {
+  name: string;
+  uid: number;
+  aliases: string[];
+}
+
+export interface YearlyPosterStats {
+  year:	number;
+  post_count:	number;
+  edit_count:	number;
+  threads_created:	number;
+  quoted_count: number;
+  quotes_count: number;
+  avg_post_length: number;
+}
+
+export interface PosterDevelopmentResponse {
+  user: UserInfo;
+  years: { [index: number]: YearlyPosterStats };
+}
+export interface PosterDevelopment {
+  user: UserInfo;
+  years: YearlyPosterStats[];
 }

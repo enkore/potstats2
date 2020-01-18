@@ -32,6 +32,9 @@ import {AppDailyStatsComponent} from './app-daily-stats/app-daily-stats.componen
 
 import {registerLocaleData} from '@angular/common';
 import localeDe from '@angular/common/locales/de';
+import { AppPosterDevelopmentStatsComponent } from './app-poster-development-stats/app-poster-development-stats.component';
+import {ReactiveFormsModule} from '@angular/forms';
+import {MatInputModule} from '@angular/material';
 
 registerLocaleData(localeDe, 'de');
 
@@ -42,6 +45,7 @@ const routes: Routes = [
   { path: 'weekday-stats', component: AppWeekdayStatsComponent},
   {path: 'daily-stats', component: AppDailyStatsComponent},
   { path: 'board-stats', component: AppBoardStatsComponent},
+  { path: 'poster-dev-stats', component: AppPosterDevelopmentStatsComponent},
   { path: 'imprint', component: ImprintComponent },
   { path: 'privacy', component: PrivacyComponent }
 ];
@@ -59,6 +63,7 @@ const routes: Routes = [
     AppBarGraphComponent,
     NoopPipe,
     AppDailyStatsComponent,
+    AppPosterDevelopmentStatsComponent,
   ],
   imports: [
     BrowserModule,
@@ -73,11 +78,13 @@ const routes: Routes = [
     MatListModule,
     MatSelectModule,
     MatCardModule,
+    MatInputModule,
     FlexModule,
     RouterModule.forRoot(routes),
     MatTableModule,
     MatSortModule,
     DataModule,
+    ReactiveFormsModule,
   ],
   providers: [{provide: LOCALE_ID, useValue: 'de'}],
   bootstrap: [AppComponent]

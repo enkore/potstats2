@@ -245,13 +245,16 @@ def poster_developmental_issues():
     bid = request_arg('bid', int, default=None)
     uid = request_arg('uid', int, default=None)
     if uid is None:
-        user = request_arg('user', str)
-        try:
-            uid = session.query(User).filter(User.name == user).one().uid
-        except InvalidRequestError:
-            raise APIError('User not found: %s' % user)
+        username = request_arg('user', str)
+        user = session.query(User).filter(func.lower(User.name) == func.lower(username)).order_by(desc(User.uid)).first()
+        if not user:
+            raise APIError('User not found: %s' % username)
+    else:
+        user = session.query(User).get(uid)
+        if not user:
+            raise APIError('User ID not found: %s' % uid)
 
-    query = dal.poster_developmental_issues(session, uid, bid)
+    query = dal.poster_developmental_issues(session, user.uid, bid)
 
     if 'csv' in request.args:
         fd = io.StringIO()
@@ -261,10 +264,13 @@ def poster_developmental_issues():
             writer.writerow(row)
 
         response = Response(fd.getvalue(), mimetype='text/csv')
-        response.headers["Content-Disposition"] = "attachment; filename=user-development-%d.csv" % uid
+        response.headers["Content-Disposition"] = "attachment; filename=user-development-%d.csv" % user.uid
         return response
     else:
-        return json_response({r.year: r._asdict() for r in query.all()})
+        return json_response({
+            'user': user,
+            'years': {r.year: r._asdict() for r in query.all()},
+        })
 
 
 @app.route('/api/weekday-stats')

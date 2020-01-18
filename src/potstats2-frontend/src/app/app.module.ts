@@ -4,17 +4,15 @@ import {LOCALE_ID, NgModule} from '@angular/core';
 import {AppComponent} from './app.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {LayoutModule} from '@angular/cdk/layout';
-import {
-  MatButtonModule,
-  MatCardModule,
-  MatIconModule,
-  MatListModule,
-  MatSelectModule,
-  MatSidenavModule,
-  MatSortModule,
-  MatTableModule,
-  MatToolbarModule
-} from '@angular/material';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import {AppNavComponent} from './app-nav/app-nav.component';
 import {ImprintComponent} from './imprint/imprint.component';
 import {PrivacyComponent} from './privacy/privacy.component';

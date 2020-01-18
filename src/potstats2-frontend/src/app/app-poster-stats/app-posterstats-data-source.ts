@@ -1,4 +1,4 @@
-import {MatSort} from '@angular/material';
+import { MatSort } from '@angular/material/sort';
 import { Observable, combineLatest } from 'rxjs';
 import {PosterStats} from '../data/types';
 import {PosterStatsService} from '../data/poster-stats.service';

@@ -3,7 +3,7 @@ import {Stats} from '../data/types';
 import {Observable} from 'rxjs/internal/Observable';
 import {combineLatest, concat, map} from 'rxjs/operators';
 import {of} from 'rxjs';
-import {MatSelect} from '@angular/material';
+import { MatSelect } from '@angular/material/select';
 import {NoopPipe} from '../noop.pipe';
 
 @Component({
@@ -12,7 +12,7 @@ import {NoopPipe} from '../noop.pipe';
   styleUrls: ['./app-bar-graph.component.css']
 })
 export class AppBarGraphComponent implements OnInit {
-  @ViewChild(MatSelect) statsSelect: MatSelect;
+  @ViewChild(MatSelect, { static: true }) statsSelect: MatSelect;
 
   @Input()
   selectableStats: Stats[];

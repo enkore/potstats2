@@ -1,5 +1,5 @@
 import {Component, OnInit, ViewChild} from '@angular/core';
-import {MatSort} from '@angular/material';
+import { MatSort } from '@angular/material/sort';
 import {AppPosterstatsDataSource} from './app-posterstats-data-source';
 import {PosterStatsService} from '../data/poster-stats.service';
 import {GlobalFilterStateService} from '../global-filter-state.service';
@@ -13,11 +13,14 @@ import {FilterAwareComponent} from '../filter-aware-component';
   styleUrls: ['./app-posterstats.component.css']
 })
 export class AppPosterstatsComponent extends FilterAwareComponent implements OnInit {
-  @ViewChild(MatSort) sort: MatSort;
+  @ViewChild(MatSort, { static: true }) sort: MatSort;
   dataSource: AppPosterstatsDataSource;
 
   loadMore = new Subject<void>();
-  displayedColumns = ['row_index', 'name', 'post_count', 'edit_count', 'avg_post_length', 'threads_created', 'quoted_count', 'quotes_count'];
+  displayedColumns = [
+    'row_index', 'name', 'post_count', 'edit_count',
+    'avg_post_length', 'threads_created', 'quoted_count', 'quotes_count'
+  ];
 
   constructor(private service: PosterStatsService,
               router: Router,

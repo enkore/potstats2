@@ -4,7 +4,7 @@ import {GlobalFilterStateService} from '../global-filter-state.service';
 import {Observable} from 'rxjs/internal/Observable';
 import {SeriesStats, Stats} from '../data/types';
 import {AppDailyStatsDataSource} from './app-daily-stats-data-source';
-import {MatSelect} from '@angular/material';
+import { MatSelect } from '@angular/material/select';
 import {map} from 'rxjs/operators';
 import {concat, of} from 'rxjs';
 import {ActivatedRoute, Router} from '@angular/router';
@@ -16,7 +16,7 @@ import {FilterAwareComponent} from '../filter-aware-component';
   styleUrls: ['./app-daily-stats.component.css']
 })
 export class AppDailyStatsComponent extends FilterAwareComponent implements OnInit {
-  @ViewChild(MatSelect) statsSelect: MatSelect;
+  @ViewChild(MatSelect, { static: true }) statsSelect: MatSelect;
 
   statsSource: Observable<SeriesStats[]>;
 

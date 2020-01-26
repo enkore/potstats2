@@ -10,6 +10,7 @@ from flask import Flask, request, Response, url_for, g, send_file
 from sqlalchemy import func, desc, tuple_, column
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import joinedload
+from sqlalchemy.util import KeyedTuple
 
 from ..db import Post, User, LinkType, Thread
 from .. import db, dal, config
@@ -254,13 +255,19 @@ def poster_developmental_issues():
         if not user:
             raise APIError('User ID not found: %s' % uid)
 
-    query = dal.poster_developmental_issues(session, user.uid, bid)
+    columns = ['year', 'post_count', 'edit_count', 'threads_created', 'quoted_count', 'quotes_count', 'avg_post_length']
+    rows = dal.poster_developmental_issues(session, user.uid, bid).all()
+    years = {r.year: r for r in rows}
+    for year in range(min(years), max(years)):
+        if year not in years:
+            years[year] = KeyedTuple([year, 0, 0, 0, 0, 0, 0],labels=columns)
+    rows = sorted(years.values(), key=lambda r: r.year)
 
     if 'csv' in request.args:
         fd = io.StringIO()
         writer = csv.writer(fd)
-        writer.writerow(['year', 'post_count', 'edit_count', 'threads_created', 'quoted_count', 'quotes_count', 'avg_post_length'])
-        for row in query.all():
+        writer.writerow(columns)
+        for row in rows:
             writer.writerow(row)
 
         response = Response(fd.getvalue(), mimetype='text/csv')
@@ -269,7 +276,7 @@ def poster_developmental_issues():
     else:
         return json_response({
             'user': user,
-            'years': {r.year: r._asdict() for r in query.all()},
+            'years': {r.year: r._asdict() for r in rows},
         })
 
 

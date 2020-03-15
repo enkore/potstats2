@@ -260,7 +260,8 @@ def analyze_posts(session, state_file):
         child_pid = os.fork()
         if not child_pid:
             progress_fd = c
-            session.close()
+            session.invalidate()
+            session.bind.dispose()
             analyze_posts_process(nchild, progress_fd, pids, pids_to_process)
             sys.exit(0)
         children[p] = child_pid

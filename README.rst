@@ -10,16 +10,16 @@ A classic multi-zoo enterprise architecture:
 
 Le Stack
 
-- Database: PostgreSQL
+- Database: PostgreSQL (10+)
 - Database connector: sqlalchemy/psycopg2
 - HTTP adapter: flask
 - Frontend: Angular
-- Search server: ElasticSearch
+- Search server: ElasticSearch (7+)
 
 Setup
 -----
 
-1. Set up postgres or use postgres instance at potstats2.enkore.de via SSH port forwarding (see ticket #1).
+1. Set up postgres
 
    For Arch Linux:
 
@@ -43,8 +43,6 @@ Setup
 
 4. Load database dump or run crawler (currently runs against some random subforum no one ever cared about, so this should take all but a minute)::
 
--  Database dump: Fetch https://pstore.enkore.de/dump-2018-05-16-200%7E54159332c65cf2b3728775b9601580fa65fa9b41a2c5e5bcd85a5936552fadbe%7E.sql.gz
-   and run ``gunzip dump...sql.gz | psql potstats2``.
 -  Crawler: potstats2-worldeater
 
 Configuration (src/potstats2/config.py)
@@ -110,3 +108,8 @@ Frontend
 Go to the ``src/potstats2-frontend`` directory and ``npm install`` it. The ``pack-dist.sh`` script
 creates a tarball for deployment at ``dist/potstats2-frontend.tar.gz``. The tarball includes
 pre-compressed files compatible with nginx's ``gzip_static`` module.
+
+Search frontend
+---------------
+
+This is plain JavaScript in a HTML file. No build tools/steps are required.

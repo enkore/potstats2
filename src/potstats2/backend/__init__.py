@@ -500,7 +500,7 @@ def search():
 
     query = parse_textual_query(content, **parser_kwargs)
 
-    es_result = es.search(type, type, {
+    es_result = es.search(index=type, body={
         'from': offset,
         'size': 30,
         'query': query,

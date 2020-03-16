@@ -100,12 +100,12 @@ ESP_POISON = object()
 
 def elasticsearch_pusher(queue):
     es = config.elasticsearch_client()
-    if not es:
-        return
     while True:
         bodies = queue.get()
         if bodies is ESP_POISON:
             break
+        if not es:
+            continue
         actions = [dict(_index='post', _type='post', _id=body['pid'], _source=body) for body in bodies]
         elasticsearch.helpers.bulk(es, actions, chunk_size=10000, max_chunk_bytes=100 * 1024 * 1024)
 

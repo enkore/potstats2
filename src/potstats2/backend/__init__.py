@@ -515,7 +515,7 @@ def search():
         },
         'sort': sorting,
     })
-    count = es_result['hits']['total']
+    count = es_result['hits']['total']['value']
 
     if type == 'post':
         results = [dict(

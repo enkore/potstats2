@@ -160,9 +160,10 @@ def process_board(api, session, bid, force_initial_pass):
                    or force_initial_pass
 
     newest_complete_tid = None
+    threads_paginate = session.query(func.count(Thread.tid) > 30).filter(Thread.bid == bid).scalar()
     if initial_pass:
         print('Initial pass on this board.')
-    else:
+    elif threads_paginate:
         newest_complete_thread = session.query(Thread).filter_by(is_complete=True, bid=bid).join(
             Thread.last_post).order_by(desc(Post.pid)).first()
         if newest_complete_thread:

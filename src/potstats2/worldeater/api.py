@@ -23,7 +23,7 @@ class InvalidBoardError(RuntimeError):
 
 class InvalidThreadError(RuntimeError):
     def __str__(self):
-        return 'Invalid thread specified: bid=%d' % self.args
+        return 'Invalid thread specified: tid=%d' % self.args
 
 
 class UnreachableProfileError(RuntimeError):

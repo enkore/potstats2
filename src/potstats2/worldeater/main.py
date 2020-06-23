@@ -5,7 +5,7 @@ import click
 from sqlalchemy import func, desc, event
 from sqlalchemy.orm.attributes import set_attribute
 
-from .api import XmlApiConnector, ProfileNotFoundError, UnreachableProfileError, NoAccess
+from .api import XmlApiConnector, ProfileNotFoundError, UnreachableProfileError, NoAccess, InvalidThreadError
 from ..config import setup_debugger
 from ..db import get_session, Category, Board, Thread, Post, PostContent, User, WorldeaterState, \
     WorldeaterThreadsNeedingUpdate, MyModsUserStaging, Avatar
@@ -189,7 +189,11 @@ def process_board(api, session, bid, force_initial_pass):
         for dbthread in bar:
             tnu = session.query(WorldeaterThreadsNeedingUpdate).get(dbthread.tid) or WorldeaterThreadsNeedingUpdate(thread=dbthread)
             if dbthread.last_pid:
-                thread = api.thread(dbthread.tid, pid=dbthread.last_post.pid)
+                try:
+                    thread = api.thread(dbthread.tid, pid=dbthread.last_post.pid)
+                except InvalidThreadError as ite:
+                    print("Thread", dbthread.tid, "has been unexisted, skipping.")
+                    continue
                 # Might advance dbthread.last_post to the last post on this page
                 posts = thread.findall('./posts/post')
                 merge_posts(session, dbthread, posts)
